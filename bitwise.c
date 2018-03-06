@@ -19,6 +19,52 @@
         fwrite(buf, 1, read, out); \
     }
 
+/*
+ * Attempts to read `count` bytes from `operand` to `buf`. The given eof_mode
+ * will be used if EOF is reached before `count` bytes have been read.
+ */
+static size_t read_operand(byte *buf, size_t count, FILE *operand, eof_mode eof) {
+    size_t read = fread(buf, 1, count, operand);
+
+    if (read < count) {
+        if (feof(operand)) {
+            switch (eof) {
+                case EOF_TRUNCATE:
+                    // Return zero at end of function
+                    break;
+                case EOF_LOOP:
+                    // Try to seek back to beginning
+                    if (fseek(operand, 0, SEEK_SET) == -1) {
+                        error(ERROR_OPERAND_NOT_SEEKABLE);
+                    }
+
+                    // Recursively read more bytes. May need to loop file
+                    // multiple times.
+                    read += read_operand(buf + read, count - read, operand, eof);
+
+                    break;
+                case EOF_ZERO:
+                    // Set rest of buf to all zero-bits
+                    memset(buf + read, 0, count - read);
+                    read = count;
+                    break;
+                case EOF_ONE:
+                    // Set rest of buf to all one-bits
+                    memset(buf + read, ~0, count - read);
+                    read = count;
+                    break;
+                case EOF_ERROR:
+                    error(ERROR_OPERAND_UNDERFLOW);
+                    break;
+            }
+        } else {
+            error(ERROR_OPERAND_READ);
+        }
+    }
+
+    return read;
+}
+
 // OR functions
 
 void or_byte(FILE *in, FILE *out, byte operand) {

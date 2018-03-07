@@ -8,6 +8,10 @@
 #define ERROR_OPERAND_UNDERFLOW 4
 #define ERROR_OPERAND_NOT_SEEKABLE 5
 
-void error(int error, ...);
+#include <stdlib.h>
+
+#define error(error, ...) _error(error, ##__VA_ARGS__); exit(error)
+
+void _error(int error, ...);
 
 #endif

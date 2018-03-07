@@ -89,26 +89,22 @@ static operator parse_operator(char *arg) {
     }
 }
 
-static operand parse_operand(operator operator, char *arg) {
-    operand operand;
-    
+static void parse_operand(operator operator, operand *operand, char *arg) {
     switch (operator) {
         case OP_OR: case OP_AND: case OP_XOR:
             // Parse as byte if possible, otherwise assume file
-            if (sscanf(arg, "%hhi", &operand.byte) != 1) {
-                operand.file = arg;
+            if (sscanf(arg, "%hhi", &operand->byte) != 1) {
+                operand->file = arg;
             }
             break;
         case OP_LSHIFT: case OP_RSHIFT:
-            if (sscanf(arg, "%zu", &operand.shift) != 1) {
+            if (sscanf(arg, "%zu", &operand->shift) != 1) {
                 error(ERROR_ILLEGAL_ARGUMENT, "Invalid shift amount", arg);
             }
             break;
         default:
             error(ERROR_INCORRECT_USAGE, "Operator does not take an operand");
     }
-    
-    return operand;
 }
 
 // Argp parser
@@ -128,7 +124,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
                 args->operator = parse_operator(arg);
             } else if (state->arg_num == 1) {
                 // Operand
-                args->operand = parse_operand(args->operator, arg);
+                parse_operand(args->operator, &args->operand, arg);
             }
             
             break;

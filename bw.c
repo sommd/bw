@@ -154,29 +154,73 @@ int main(int argc, char *argv[]) {
     
     argp_parse(&argp, argc, argv, 0, NULL, &args);
     
-    printf("Input=%s\n", args.input);
-    printf("Output=%s\n", args.output);
-    
-    printf("Operator=");
-    switch (args.operator) {
-        case OP_OR: printf("|"); break;
-        case OP_AND: printf("&"); break;
-        case OP_XOR: printf("^"); break;
-        case OP_NOT: printf("~"); break;
-        case OP_LSHIFT: printf("<<"); break;
-        case OP_RSHIFT: printf(">>"); break;
+    FILE *input = stdin;
+    if (args.input && strcmp(args.input, "-") != 0) {
+        input = fopen(args.input, "r");
+        
+        if (!input) {
+            error(ERROR_ILLEGAL_ARGUMENT, "Can't open input", args.input);
+        }
     }
-    printf("\n");
     
-    printf("Operand=");
+    FILE *output = stdout;
+    if (args.output && strcmp(args.output, "-") != 0) {
+        output = fopen(args.output, "w");
+        
+        if (!output) {
+            error(ERROR_ILLEGAL_ARGUMENT, "Can't open output", args.output);
+        }
+    }
+    
+    FILE *operand = NULL;
     if (args.operand.file) {
-        printf("%s (file)", args.operand.file);
-    } else if (args.operator == OP_LSHIFT || args.operator == OP_RSHIFT) {
-        printf("%zu (shift)", args.operand.shift);
-    } else {
-        printf("%hhu (byte)", args.operand.byte);
+        operand = fopen(args.operand.file, "r");
+        
+        if (!operand) {
+            error(ERROR_ILLEGAL_ARGUMENT, "Can't open operand", args.operand.file);
+        }
     }
-    printf("\n");
     
-    return 0;
+    switch (args.operator) {
+        case OP_OR:
+            if (operand) {
+                or_file(input, output, operand, args.eof);
+            } else {
+                or_byte(input, output, args.operand.byte);
+            }
+            break;
+        case OP_AND:
+            if (operand) {
+                and_file(input, output, operand, args.eof);
+            } else {
+                and_byte(input, output, args.operand.byte);
+            }
+            break;
+        case OP_XOR:
+            if (operand) {
+                xor_file(input, output, operand, args.eof);
+            } else {
+                xor_byte(input, output, args.operand.byte);
+            }
+            break;
+        case OP_NOT:
+            not(input, output);
+            break;
+        case OP_LSHIFT:
+            lshift(input, output, args.operand.shift);
+            break;
+        case OP_RSHIFT:
+            rshift(input, output, args.operand.shift);
+            break;
+    }
+    
+    if (input != stdin) {
+        fclose(input);
+    }
+    
+    if (output != stdout) {
+        fclose(output);
+    }
+    
+    return EXIT_SUCCESS;
 }

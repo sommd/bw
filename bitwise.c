@@ -72,7 +72,21 @@ void or_byte(FILE *in, FILE *out, byte operand) {
 }
 
 void or_file(FILE *in, FILE *out, FILE *operand, eof_mode eof) {
-    // TODO
+    byte in_buf[BW_BUF_SIZE], op_buf[BW_BUF_SIZE];
+    
+    size_t read;
+    // Read upto BW_BUF_SIZE bytes from in, then read up to `read` bytes from
+    // operand. If eof is EOF_TRUNCATE, then this will cause the loop to only
+    // output up to `read` bytes. If eof is anything else then read_operand will
+    // always return `read`.
+    while ((read = fread(in_buf, 1, BW_BUF_SIZE, in)) > 0 &&
+            (read = read_operand(op_buf, read, operand, eof))) {
+        for (size_t i = 0; i < read; i++) {
+            in_buf[i] |= op_buf[i];
+        }
+        
+        fwrite(in_buf, 1, read, out);
+    }
 }
 
 // AND functions

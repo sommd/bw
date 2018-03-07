@@ -71,6 +71,22 @@ static bool matches_option(char *arg, char *option) {
     return arg[0] != '\0';
 }
 
+static eof_mode parse_eof_mode(char *arg) {
+    if (matches_option(arg, "error")) {
+        return EOF_ERROR;
+    } else if (matches_option(arg, "truncate")) {
+        return EOF_TRUNCATE;
+    } else if (matches_option(arg, "loop")) {
+        return EOF_LOOP;
+    } else if (matches_option(arg, "zero")) {
+        return EOF_ZERO;
+    } else if (matches_option(arg, "one")) {
+        return EOF_ONE;
+    } else {
+        error(ERROR_ILLEGAL_ARGUMENT, "Unrecognised EOF mode", arg);
+    }
+}
+
 static operator parse_operator(char *arg) {
     if (matches_option(arg, "|") || matches_option(arg, "or")) {
         return OP_OR;
@@ -117,6 +133,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
             break;
         case 'o':
             args->output = arg;
+            break;
+        case 'e':
+            args->eof = parse_eof_mode(arg);
             break;
         case ARGP_KEY_ARG:
             if (state->arg_num == 0) {

@@ -19,6 +19,25 @@
         fwrite(buf, 1, read, out); \
     }
 
+#define bw_generic_file(in, out, operator, operand, eof) \
+    byte in_buf[BW_BUF_SIZE], op_buf[BW_BUF_SIZE]; \
+    \
+    size_t read; \
+    /*
+     * Read upto BW_BUF_SIZE bytes from in, then read up to `read` bytes from
+     * operand. If eof is EOF_TRUNCATE, then this will cause the loop to only
+     * output up to `read` bytes. If eof is anything else then read_operand
+     * will always return `read`.
+     */ \
+    while ((read = fread(in_buf, 1, BW_BUF_SIZE, in)) > 0 && \
+            (read = read_operand(op_buf, read, operand, eof))) { \
+        for (size_t i = 0; i < read; i++) { \
+            in_buf[i] operator op_buf[i]; \
+        } \
+        \
+        fwrite(in_buf, 1, read, out); \
+    } \
+
 /*
  * Attempts to read `count` bytes from `operand` to `buf`. The given eof_mode
  * will be used if EOF is reached before `count` bytes have been read.
@@ -72,21 +91,7 @@ void or_byte(FILE *in, FILE *out, byte operand) {
 }
 
 void or_file(FILE *in, FILE *out, FILE *operand, eof_mode eof) {
-    byte in_buf[BW_BUF_SIZE], op_buf[BW_BUF_SIZE];
-    
-    size_t read;
-    // Read upto BW_BUF_SIZE bytes from in, then read up to `read` bytes from
-    // operand. If eof is EOF_TRUNCATE, then this will cause the loop to only
-    // output up to `read` bytes. If eof is anything else then read_operand will
-    // always return `read`.
-    while ((read = fread(in_buf, 1, BW_BUF_SIZE, in)) > 0 &&
-            (read = read_operand(op_buf, read, operand, eof))) {
-        for (size_t i = 0; i < read; i++) {
-            in_buf[i] |= op_buf[i];
-        }
-        
-        fwrite(in_buf, 1, read, out);
-    }
+    bw_generic_file(in, out, |=, operand, eof);
 }
 
 // AND functions
@@ -96,7 +101,7 @@ void and_byte(FILE *in, FILE *out, byte operand) {
 }
 
 void and_file(FILE *in, FILE *out, FILE *operand, eof_mode eof) {
-    // TODO
+    bw_generic_file(in, out, &=, operand, eof);
 }
 
 // XOR functions
@@ -106,7 +111,7 @@ void xor_byte(FILE *in, FILE *out, byte operand) {
 }
 
 void xor_file(FILE *in, FILE *out, FILE *operand, eof_mode eof) {
-    // TODO
+    bw_generic_file(in, out, ^=, operand, eof);
 }
 
 // NOT function

@@ -22,6 +22,10 @@ typedef size_t shift;
  */
 typedef enum eof_mode {
     /*
+     * Close all files and exit with code ERROR_OPERAND_UNDERFLOW.
+     */
+    EOF_ERROR,
+    /*
      * Ignore the rest of the input file and stop outputting, leaving the output
      * file the size of the operand file.
      */
@@ -41,10 +45,6 @@ typedef enum eof_mode {
      * input file.
      */
     EOF_ONE,
-    /*
-     * Close all files and exit with code ERROR_OPERAND_UNDERFLOW.
-     */
-    EOF_ERROR,
 } eof_mode;
 
 // OR functions

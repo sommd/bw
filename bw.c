@@ -55,14 +55,14 @@ static struct argp_option options[] = {
 };
 
 /**
- * Check if the `operand` starts with `arg`, case insensitively, and that
+ * Check if the `option` starts with `arg`, case insensitively, and that
  * strlen(`arg`) > 0.
  */
-static bool matches_operand(char *arg, char *operand) {
+static bool matches_option(char *arg, char *option) {
     for (size_t i = 0; arg[i] != '\0'; i++) {
-        // False if we reached the end of operand before end of arg, or if arg
-        // and operand don't match.
-        if (operand[i] == '\0' || tolower(arg[i]) != tolower(operand[i])) {
+        // False if we reached the end of option before end of arg, or if arg
+        // and option don't match.
+        if (option[i] == '\0' || tolower(arg[i]) != tolower(option[i])) {
             return false;
         }
     }
@@ -72,17 +72,17 @@ static bool matches_operand(char *arg, char *operand) {
 }
 
 static operator parse_operator(char *arg) {
-    if (matches_operand(arg, "|") || matches_operand(arg, "or")) {
+    if (matches_option(arg, "|") || matches_option(arg, "or")) {
         return OP_OR;
-    } else if (matches_operand(arg, "&") || matches_operand(arg, "and")) {
+    } else if (matches_option(arg, "&") || matches_option(arg, "and")) {
         return OP_AND;
-    } else if (matches_operand(arg, "^") || matches_operand(arg, "xor")) {
+    } else if (matches_option(arg, "^") || matches_option(arg, "xor")) {
         return OP_XOR;
-    } else if (matches_operand(arg, "~") || matches_operand(arg, "not")) {
+    } else if (matches_option(arg, "~") || matches_option(arg, "not")) {
         return OP_NOT;
-    } else if (matches_operand(arg, "<<") || matches_operand(arg, "lshift")) {
+    } else if (matches_option(arg, "<<") || matches_option(arg, "lshift")) {
         return OP_LSHIFT;
-    } else if (matches_operand(arg, ">>") || matches_operand(arg, "rshift")) {
+    } else if (matches_option(arg, ">>") || matches_option(arg, "rshift")) {
         return OP_RSHIFT;
     } else {
         error(ERROR_ILLEGAL_ARGUMENT, "Unrecognised operator", arg);

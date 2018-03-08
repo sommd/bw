@@ -4,8 +4,15 @@
 #include <string.h>
 #include <argp.h>
 #include "bitwise.h"
-#include "error.h"
 #include "config.h"
+
+#define ERROR_INCORRECT_USAGE 1
+#define ERROR_ILLEGAL_ARGUMENT 2
+#define ERROR_IO_ERROR 3
+
+#define error(code, msg, ...) \
+    fprintf(stderr, msg "\n", ##__VA_ARGS__);\
+    exit(code);
 
 #define DOC PACKAGE_NAME " - perform bitwise operations on files"
 #define ARGS_DOC "OPERATOR [OPERAND]"
@@ -83,7 +90,7 @@ static eof_mode parse_eof_mode(char *arg) {
     } else if (matches_option(arg, "one")) {
         return EOF_ONE;
     } else {
-        error(ERROR_ILLEGAL_ARGUMENT, "Unrecognised EOF mode", arg);
+        error(ERROR_ILLEGAL_ARGUMENT, "Unrecognised EOF mode: %s", arg);
     }
 }
 
@@ -101,7 +108,7 @@ static operator parse_operator(char *arg) {
     } else if (matches_option(arg, ">>") || matches_option(arg, "rshift")) {
         return OP_RSHIFT;
     } else {
-        error(ERROR_ILLEGAL_ARGUMENT, "Unrecognised operator", arg);
+        error(ERROR_ILLEGAL_ARGUMENT, "Unrecognised operator: %s", arg);
     }
 }
 
@@ -115,7 +122,7 @@ static void parse_operand(operator operator, operand *operand, char *arg) {
             break;
         case OP_LSHIFT: case OP_RSHIFT:
             if (sscanf(arg, "%zu", &operand->shift) != 1) {
-                error(ERROR_ILLEGAL_ARGUMENT, "Invalid shift amount", arg);
+                error(ERROR_ILLEGAL_ARGUMENT, "Invalid shift amount: %s", arg);
             }
             break;
         default:
@@ -178,7 +185,7 @@ int main(int argc, char *argv[]) {
         input = fopen(args.input, "r");
         
         if (!input) {
-            error(ERROR_ILLEGAL_ARGUMENT, "Can't open input", args.input);
+            error(ERROR_IO_ERROR, "Can't open input: %s", args.input);
         }
     }
     
@@ -187,7 +194,7 @@ int main(int argc, char *argv[]) {
         output = fopen(args.output, "w");
         
         if (!output) {
-            error(ERROR_ILLEGAL_ARGUMENT, "Can't open output", args.output);
+            error(ERROR_IO_ERROR, "Can't open output: %s", args.output);
         }
     }
     
@@ -196,7 +203,7 @@ int main(int argc, char *argv[]) {
         operand = fopen(args.operand.file, "r");
         
         if (!operand) {
-            error(ERROR_ILLEGAL_ARGUMENT, "Can't open operand", args.operand.file);
+            error(ERROR_IO_ERROR, "Can't open operand: %s", args.operand.file);
         }
     }
     
@@ -247,9 +254,25 @@ int main(int argc, char *argv[]) {
     
     // Handle errors
     if (error) {
-        // TODO
-        fprintf(stderr, "Error\n");
-        return error;
+        switch (error) {
+            case BW_ERROR_INPUT_READ:
+                error(ERROR_IO_ERROR, "Error reading from input");
+                break;
+            case BW_ERROR_OUTPUT_WRITE:
+                error(ERROR_IO_ERROR, "Error writing to output");
+                break;
+            case BW_ERROR_OPERAND_READ:
+                error(ERROR_IO_ERROR, "Error reading from operand file");
+                break;
+            case BW_ERROR_OPERAND_EOF:
+                error(ERROR_IO_ERROR, "Unexpected EOF while reading operand file");
+                break;
+            case BW_ERROR_OPERAND_SEEK:
+                error(ERROR_IO_ERROR, "Cannot seek operand file");
+                break;
+            default:
+                error(ERROR_IO_ERROR, "Unknown error");
+        }
     } else {
         return EXIT_SUCCESS;
     }

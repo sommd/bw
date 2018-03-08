@@ -200,46 +200,57 @@ int main(int argc, char *argv[]) {
         }
     }
     
+    bw_error error = BW_ERROR_NONE;
     switch (args.operator) {
         case OP_OR:
             if (operand) {
-                or_file(input, output, operand, args.eof);
+                error = or_file(input, output, operand, args.eof);
             } else {
-                or_byte(input, output, args.operand.byte);
+                error = or_byte(input, output, args.operand.byte);
             }
             break;
         case OP_AND:
             if (operand) {
-                and_file(input, output, operand, args.eof);
+                error = and_file(input, output, operand, args.eof);
             } else {
-                and_byte(input, output, args.operand.byte);
+                error = and_byte(input, output, args.operand.byte);
             }
             break;
         case OP_XOR:
             if (operand) {
-                xor_file(input, output, operand, args.eof);
+                error = xor_file(input, output, operand, args.eof);
             } else {
-                xor_byte(input, output, args.operand.byte);
+                error = xor_byte(input, output, args.operand.byte);
             }
             break;
         case OP_NOT:
-            not(input, output);
+            error = not(input, output);
             break;
         case OP_LSHIFT:
-            lshift(input, output, args.operand.shift);
+            error = lshift(input, output, args.operand.shift);
             break;
         case OP_RSHIFT:
-            rshift(input, output, args.operand.shift);
+            error = rshift(input, output, args.operand.shift);
             break;
     }
     
+    // Close files
     if (input != stdin) {
         fclose(input);
     }
-    
     if (output != stdout) {
         fclose(output);
     }
+    if (operand) {
+        fclose(operand);
+    }
     
-    return EXIT_SUCCESS;
+    // Handle errors
+    if (error) {
+        // TODO
+        fprintf(stderr, "Error\n");
+        return error;
+    } else {
+        return EXIT_SUCCESS;
+    }
 }

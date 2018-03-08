@@ -7,23 +7,34 @@
 
 // Types
 
-/*
- * Used as an operand for all binary bitwise operations.
- */
+/* Used as an operand for all binary bitwise operations. */
 typedef uint8_t byte;
 
-/*
- * Used as an bit-shift amount, operand for all bitshift operations.
- */
+/* Used as an bit-shift amount, operand for all bitshift operations. */
 typedef size_t shift;
 
-/*
- * How to handle premature EOF of the operand file in '_file' functions.
- */
-typedef enum eof_mode {
+/* Indicates type of error (if any) in bitwise functions. */
+typedef enum bw_error {
+    /* No error occured. */
+    BW_ERROR_NONE,
+    /* Error reading from input file. */
+    BW_ERROR_INPUT_READ,
+    /* Error writing to output file. */
+    BW_ERROR_OUTPUT_WRITE,
+    /* Error reading from operand file. */
+    BW_ERROR_OPERAND_READ,
     /*
-     * Close all files and exit with code ERROR_OPERAND_UNDERFLOW.
+     * EOF mode is EOF_ERROR and operand file reached EOF, or EOF mode is
+     * EOF_LOOP and operand file is 0 bytes long.
      */
+    BW_ERROR_OPERAND_EOF,
+    /* EOF mode is EOF_LOOP and operand file cannot be seeked. */
+    BW_ERROR_OPERAND_SEEK,
+} bw_error;
+
+/* How to handle premature EOF of the operand file in '_file' functions. */
+typedef enum eof_mode {
+    /* Close all files and exit with code ERROR_OPERAND_UNDERFLOW. */
     EOF_ERROR,
     /*
      * Ignore the rest of the input file and stop outputting, leaving the output
@@ -47,66 +58,51 @@ typedef enum eof_mode {
     EOF_ONE,
 } eof_mode;
 
-// OR functions
+// Byte functions
+
+/* Bitwise OR each byte from `input` with `operand` and write to `output`. */
+bw_error or_byte(FILE *input, FILE *output, byte operand);
+
+/* Bitwise AND each byte from `input` with `operand` and write to `output`. */
+bw_error and_byte(FILE *input, FILE *output, byte operand);
+
+/* Bitwise XOR each byte from `input` with `operand` and write to `output`. */
+bw_error xor_byte(FILE *input, FILE *output, byte operand);
+
+// File functions
 
 /*
- * Bitwise OR (|) each byte from `in` with `operand` and write to `out`.
+ * Bitwise OR each byte from `input` with each byte from `operand` and write to
+ * `output`. If `operand` is smaller than `input`, then the specified eof_mode
+ * is used.
  */
-void or_byte(FILE *in, FILE *out, byte operand);
+bw_error or_file(FILE *input, FILE *output, FILE *operand, eof_mode eof);
 
 /*
- * Bitwise OR (|) each byte from `in` with each byte from `operand` and write to
- * `out`. If `operand` is smaller than `in`, then the specified eof_mode is used.
+ * Bitwise AND each byte from `input` with each byte from `operand` and write to
+ * `output`. If `operand` is smaller than `input`, then the specified eof_mode
+ * is used.
  */
-void or_file(FILE *in, FILE *out, FILE *operand, eof_mode eof);
-
-// AND functions
+bw_error and_file(FILE *input, FILE *output, FILE *operand, eof_mode eof);
 
 /*
- * Bitwise AND (&) each byte from `in` with `operand` and write to `out`.
+ * Bitwise XOR each byte from `input` with each byte from `operand` and write to
+ * `output`. If `operand` is smaller than `input`, then the specified eof_mode
+ * is used.
  */
-void and_byte(FILE *in, FILE *out, byte operand);
-
-/*
- * Bitwise AND (&) each byte from `in` with each byte from `operand` and write
- * to `out`. If `operand` is smaller than `in`, then the specified eof_mode is
- * used.
- */
-void and_file(FILE *in, FILE *out, FILE *operand, eof_mode eof);
-
-// XOR functions
-
-/*
- * Bitwise XOR (^) each byte from `in` with `operand` and write to `out`.
- */
-void xor_byte(FILE *in, FILE *out, byte operand);
-
-/*
- * Bitwise XOR (^) each byte from `in` with each byte from `operand` and write
- * to `out`. If `operand` is smaller than `in`, then the specified eof_mode is
- * used.
- */
-void xor_file(FILE *in, FILE *out, FILE *operand, eof_mode eof);
+bw_error xor_file(FILE *input, FILE *output, FILE *operand, eof_mode eof);
 
 // NOT function
 
-/*
- * Bitwise NOT (~) each byte from `in` and write to `out`.
- */
-void not(FILE *in, FILE *out);
+/* Bitwise NOT each byte from `input` and write to `output`. */
+bw_error not(FILE *input, FILE *output);
 
 // Shift functions
 
-/*
- * Shift the bits from 'in' left by `amount` and write to `out`. Supports any
- * non-negative `amount`.
- */
-void lshift(FILE *in, FILE *out, shift amount);
+/* Shift the bits from 'in' left by `amount` and write to `output`. */
+bw_error lshift(FILE *input, FILE *output, shift amount);
 
-/*
- * Shift the bits from 'in' right by `amount` and write to `out`. Supports any
- * non-negative `amount`.
- */
-void rshift(FILE *in, FILE *out, shift amount);
+/* Shift the bits from 'in' right by `amount` and write to `output`. */
+bw_error rshift(FILE *input, FILE *output, shift amount);
 
 #endif

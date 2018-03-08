@@ -5,9 +5,9 @@
 #include <argp.h>
 #include "bitwise.h"
 #include "error.h"
-#include "version.h"
+#include "config.h"
 
-#define DOC "bw - perform bitwise operations on files"
+#define DOC PACKAGE_NAME " - perform bitwise operations on files"
 #define ARGS_DOC "OPERATOR [OPERAND]"
 
 typedef enum operator {
@@ -38,8 +38,8 @@ typedef struct arguments {
 } arguments;
 
 // Argp options
-const char *argp_program_version = "bw " BW_VERSION;
-const char *argp_program_bug_address = "<https://github.com/sommd/bw/issues/new>";
+const char *argp_program_version = PACKAGE_STRING;
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 error_t argp_err_exit_status = ERROR_INCORRECT_USAGE;
 
 // Options definitions

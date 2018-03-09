@@ -185,11 +185,86 @@ bw_error not(FILE * input, FILE *output) {
 // Shift functions
 
 bw_error lshift(FILE *input, FILE *output, shift amount) {
-    // TODO
-    return BW_ERROR_NONE;
+    // Calculate byte and bit offset
+    size_t byte_offset = amount / 8;
+    shift bit_offset = amount % 8;
+    
+    // Skip first byte_offset bytes from input
+    if (fskip(input, byte_offset) < byte_offset && ferror(input)) {
+        return BW_ERROR_INPUT_READ;
+    }
+    
+    // Write bytes from input to output, lshifted by bit_offset
+    byte buf[BW_BUF_SIZE] = {0};
+    while (true) {
+        // Read from input, allowing space to lshift buffer
+        size_t read = fread(buf, 1, BW_BUF_SIZE - 1, input);
+        // If no data read, check for error or break if EOF
+        if (!read) {
+            if (ferror(input)) {
+                return BW_ERROR_INPUT_READ;
+            } else {
+                break;
+            }
+        }
+        
+        // LShift buffer
+        for (size_t i = 0; i < read; i++) {
+            byte left = buf[i] << bit_offset;
+            byte right = buf[i + 1] >> (8 - bit_offset);
+            buf[i] = left | right;
+        }
+        
+        // Write lshifted buffer
+        if (fwrite(buf, 1, read, output) != read) {
+            return BW_ERROR_OUTPUT_WRITE;
+        }
+    }
+    
+    // Output byte_offset (or the size of input if smaller) zero bytes
+    if (fzero(output, byte_offset) < byte_offset) {
+        return BW_ERROR_OUTPUT_WRITE;
+    } else {
+        return BW_ERROR_NONE;
+    }
 }
 
 bw_error rshift(FILE *input, FILE *output, shift amount) {
-    // TODO
+    // Calculate byte and bit offset
+    size_t byte_offset = amount / 8;
+    shift bit_offset = amount % 8;
+    
+    // Zero-fill first byte_offset bytes of output
+    if (fzero(output, byte_offset) < byte_offset) {
+        return BW_ERROR_OUTPUT_WRITE;
+    }
+    
+    // Write bytes from input to output, rshifted by bit_offset
+    byte buf[BW_BUF_SIZE] = {0};
+    while (true) {
+        // Read from input, allowing space to rshift buffer
+        size_t read = fread(buf + 1, 1, BW_BUF_SIZE - 1, input);
+        // If no data read, check for error or break if EOF
+        if (!read) {
+            if (ferror(input)) {
+                return BW_ERROR_INPUT_READ;
+            } else {
+                break;
+            }
+        }
+        
+        // RShift buffer
+        for (size_t i = read; i >= 1; i--) {
+            size_t left = buf[i - 1] << (8 - bit_offset);
+            size_t right = buf[i] >> bit_offset;
+            buf[i] = left | right;
+        }
+        
+        // Write rshifted buffer
+        if (fwrite(buf + 1, 1, read, output) != read) {
+            return BW_ERROR_OUTPUT_WRITE;
+        }
+    }
+    
     return BW_ERROR_NONE;
 }

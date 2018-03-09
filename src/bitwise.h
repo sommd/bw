@@ -4,11 +4,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include "utils.h"
 
 // Types
-
-/* Used as an operand for all binary bitwise operations. */
-typedef uint8_t byte;
 
 /* Used as an bit-shift amount, operand for all bitshift operations. */
 typedef size_t shift;

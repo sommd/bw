@@ -182,7 +182,7 @@ int main(int argc, char *argv[]) {
     
     FILE *input = stdin;
     if (args.input && strcmp(args.input, "-") != 0) {
-        input = fopen(args.input, "r");
+        input = fopen(args.input, "rb");
         
         if (!input) {
             error(ERROR_IO_ERROR, "Can't open input: %s", args.input);
@@ -191,7 +191,7 @@ int main(int argc, char *argv[]) {
     
     FILE *output = stdout;
     if (args.output && strcmp(args.output, "-") != 0) {
-        output = fopen(args.output, "w");
+        output = fopen(args.output, "wb");
         
         if (!output) {
             error(ERROR_IO_ERROR, "Can't open output: %s", args.output);
@@ -200,7 +200,7 @@ int main(int argc, char *argv[]) {
     
     FILE *operand = NULL;
     if (args.operand.file) {
-        operand = fopen(args.operand.file, "r");
+        operand = fopen(args.operand.file, "rb");
         
         if (!operand) {
             error(ERROR_IO_ERROR, "Can't open operand: %s", args.operand.file);

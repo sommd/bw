@@ -4,14 +4,23 @@
 #include <unistd.h>
 #include <assert.h>
 
-size_t fskip(FILE *f, size_t count) {
-    // Try to seek if regular file
+intmax_t fsize(FILE *f) {
     struct stat st;
     if (fstat(fileno(f), &st) != -1 && st.st_mode & S_IFREG) {
+        return st.st_size;
+    } else {
+        return -1;
+    }
+}
+
+size_t fskip(FILE *f, size_t count) {
+    // Try to seek if regular file
+    intmax_t size = fsize(f);
+    if (size != -1) {
         // Make sure we know our current position to not seek too far
         size_t pos = ftell(f);
         if (pos != -1) {
-            size_t seek = MIN(count, st.st_size - pos);
+            size_t seek = MIN(count, ((size_t) size) - pos);
             
             if (fseek(f, seek, SEEK_CUR)) {
                 return seek;

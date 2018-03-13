@@ -2,10 +2,30 @@
 
 #include <string.h>
 #include <assert.h>
+#include <errno.h>
 
 #ifndef BW_BUF_SIZE
 #define BW_BUF_SIZE BUFSIZ
 #endif
+
+// Error handling
+
+static bw_error create_error(int type) {
+    int e = errno;
+    if (type == BW_ERR_NONE || type == BW_ERR_OPERAND_EOF) {
+        e = 0;
+    }
+    
+    return (bw_error){
+        .type = type,
+        .error_number = e
+    };
+}
+
+const bw_error no_error = {
+    .type = BW_ERR_NONE,
+    .error_number = 0
+};
 
 // Byte functions
 
@@ -20,7 +40,11 @@ static inline bw_error bw_byte(FILE *input, FILE *output, byte operand, bw_opera
         size_t read = fread(buf, 1, BW_BUF_SIZE, input);
         // Check error if nothing read, or return if reached EOF
         if (!read) {
-            return ferror(input) ? BW_ERROR_INPUT_READ : BW_ERROR_NONE;
+            if (ferror(input)) {
+                return create_error(BW_ERR_INPUT_READ);
+            } else {
+                return no_error;
+            }
         }
         
         // Perform operation on each byte of buf
@@ -32,7 +56,7 @@ static inline bw_error bw_byte(FILE *input, FILE *output, byte operand, bw_opera
         size_t written = fwrite(buf, 1, read, output);
         // Error if not enough written
         if (written != read) {
-            return BW_ERROR_OUTPUT_WRITE;
+            return create_error(BW_ERR_OUTPUT_WRITE);
         }
     }
 }
@@ -77,18 +101,18 @@ bw_error xor_byte(FILE *input, FILE *output, byte operand) {
 static inline bw_error handle_eof(FILE *operand, eof_mode eof, size_t in_read, byte *op_buf, size_t *op_read) {
     switch (eof) {
         case EOF_ERROR:
-            return BW_ERROR_OPERAND_EOF;
+            return create_error(BW_ERR_OPERAND_EOF);
         case EOF_LOOP:
             // Check that operand file isn't 0 bytes long
             if (ftell(operand) == 0) {
-                return BW_ERROR_OPERAND_EOF;
+                return create_error(BW_ERR_OPERAND_EOF);
             }
             
             // Seek to beginning of operand file and read until we have enough
             while (*op_read < in_read) {
                 // Seek operand file to start, or return error
                 if (fseek(operand, 0, SEEK_SET) != 0) {
-                    return BW_ERROR_OPERAND_SEEK;
+                    return create_error(BW_ERR_OPERAND_SEEK);
                 }
                 
                 byte *op_buf_rem = op_buf + *op_read;
@@ -108,10 +132,9 @@ static inline bw_error handle_eof(FILE *operand, eof_mode eof, size_t in_read, b
             break;
         default:
             assert("This shouldn't happen" && false);
-            return -1;
     }
     
-    return BW_ERROR_NONE;
+    return no_error;
 }
 
 /* Generic version of _file functions. Performs given operation on each byte. */
@@ -123,13 +146,17 @@ static inline bw_error bw_file(FILE *input, FILE *output, FILE *operand, eof_mod
         size_t in_read = fread(in_buf, 1, BW_BUF_SIZE, input);
         // Check error if nothing read, or return if reached EOF
         if (!in_read) {
-            return ferror(input) ? BW_ERROR_INPUT_READ : BW_ERROR_NONE;
+            if (ferror(input)) {
+                return create_error(BW_ERR_INPUT_READ);
+            } else {
+                return no_error;
+            }
         }
         
         // Read from operand
         size_t op_read = fread(in_buf, 1, in_read, operand);
         // Check error if not enough read, or use EOF mode if EOF reached
-        bw_error op_error = BW_ERROR_NONE;
+        bw_error op_error = no_error;
         if (op_read < in_read) {
             if (feof(operand)) {
                 // Reach EOF
@@ -137,7 +164,7 @@ static inline bw_error bw_file(FILE *input, FILE *output, FILE *operand, eof_mod
             } else {
                 // Must be a read error, write as much as we can before
                 // returning the error at the end of this iteration
-                op_error = BW_ERROR_OPERAND_READ;
+                op_error = create_error(BW_ERR_OPERAND_READ);
             }
         }
         
@@ -150,11 +177,11 @@ static inline bw_error bw_file(FILE *input, FILE *output, FILE *operand, eof_mod
         size_t written = fwrite(in_buf, 1, op_read, output);
         // Error if not enough written
         if (written != op_read) {
-            return BW_ERROR_OUTPUT_WRITE;
+            return create_error(BW_ERR_OUTPUT_WRITE);
         }
         
         // Return operand error if there was one, or if EOF reached but no error
-        if (op_error || op_read < in_read) {
+        if (op_error.type || op_read < in_read) {
             return op_error;
         }
     }
@@ -191,7 +218,7 @@ bw_error lshift(FILE *input, FILE *output, shift amount) {
     
     // Skip first byte_offset bytes from input
     if (fskip(input, byte_offset) < byte_offset && ferror(input)) {
-        return BW_ERROR_INPUT_READ;
+        return create_error(BW_ERR_INPUT_READ);
     }
     
     // Write bytes from input to output, lshifted by bit_offset
@@ -202,7 +229,7 @@ bw_error lshift(FILE *input, FILE *output, shift amount) {
         // If no data read, check for error or break if EOF
         if (!read) {
             if (ferror(input)) {
-                return BW_ERROR_INPUT_READ;
+                return create_error(BW_ERR_INPUT_READ);
             } else {
                 break;
             }
@@ -217,15 +244,15 @@ bw_error lshift(FILE *input, FILE *output, shift amount) {
         
         // Write lshifted buffer
         if (fwrite(buf, 1, read, output) != read) {
-            return BW_ERROR_OUTPUT_WRITE;
+            return create_error(BW_ERR_OUTPUT_WRITE);
         }
     }
     
     // Output byte_offset (or the size of input if smaller) zero bytes
     if (fzero(output, byte_offset) < byte_offset) {
-        return BW_ERROR_OUTPUT_WRITE;
+        return create_error(BW_ERR_OUTPUT_WRITE);
     } else {
-        return BW_ERROR_NONE;
+        return no_error;
     }
 }
 
@@ -236,7 +263,7 @@ bw_error rshift(FILE *input, FILE *output, shift amount) {
     
     // Zero-fill first byte_offset bytes of output
     if (fzero(output, byte_offset) < byte_offset) {
-        return BW_ERROR_OUTPUT_WRITE;
+        return create_error(BW_ERR_OUTPUT_WRITE);
     }
     
     // Write bytes from input to output, rshifted by bit_offset
@@ -247,7 +274,7 @@ bw_error rshift(FILE *input, FILE *output, shift amount) {
         // If no data read, check for error or break if EOF
         if (!read) {
             if (ferror(input)) {
-                return BW_ERROR_INPUT_READ;
+                return create_error(BW_ERR_INPUT_READ);
             } else {
                 break;
             }
@@ -262,9 +289,9 @@ bw_error rshift(FILE *input, FILE *output, shift amount) {
         
         // Write rshifted buffer
         if (fwrite(buf + 1, 1, read, output) != read) {
-            return BW_ERROR_OUTPUT_WRITE;
+            return create_error(BW_ERR_OUTPUT_WRITE);
         }
     }
     
-    return BW_ERROR_NONE;
+    return no_error;
 }

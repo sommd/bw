@@ -11,24 +11,30 @@
 /* Used as an bit-shift amount, operand for all bitshift operations. */
 typedef size_t shift;
 
-/* Indicates type of error (if any) in bitwise functions. */
-typedef enum bw_error {
-    /* No error occured. */
-    BW_ERROR_NONE,
-    /* Error reading from input file. */
-    BW_ERROR_INPUT_READ,
-    /* Error writing to output file. */
-    BW_ERROR_OUTPUT_WRITE,
-    /* Error reading from operand file. */
-    BW_ERROR_OPERAND_READ,
-    /*
-     * EOF mode is EOF_ERROR and operand file reached EOF, or EOF mode is
-     * EOF_LOOP and operand file is 0 bytes long.
-     */
-    BW_ERROR_OPERAND_EOF,
-    /* EOF mode is EOF_LOOP and operand file cannot be seeked. */
-    BW_ERROR_OPERAND_SEEK,
+/* Details on type of error (if any) in bitwise functions. */
+typedef struct bw_error {
+    enum {
+        /* No error occured. */
+        BW_ERR_NONE,
+        /* Error reading from input file. */
+        BW_ERR_INPUT_READ,
+        /* Error writing to output file. */
+        BW_ERR_OUTPUT_WRITE,
+        /* Error reading from operand file. */
+        BW_ERR_OPERAND_READ,
+        /*
+         * EOF mode is EOF_ERROR and operand file reached EOF, or EOF
+         * mode is EOF_LOOP and operand file is 0 bytes long.
+         */
+        BW_ERR_OPERAND_EOF,
+        /* EOF mode is EOF_LOOP and operand file cannot be seeked. */
+        BW_ERR_OPERAND_SEEK,
+    } type;
+    /* The errno of the error that occurred. */
+    int error_number;
 } bw_error;
+
+extern const bw_error no_error;
 
 /* How to handle premature EOF of the operand file in '_file' functions. */
 typedef enum eof_mode {

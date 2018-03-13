@@ -3,16 +3,20 @@
 #include <stdbool.h>
 #include <string.h>
 #include <argp.h>
+#include <error.h>
 #include "bitwise.h"
 #include "config.h"
 
-#define ERROR_INCORRECT_USAGE 1
-#define ERROR_ILLEGAL_ARGUMENT 2
-#define ERROR_IO_ERROR 3
-
-#define error(code, msg, ...) \
-    fprintf(stderr, msg "\n", ##__VA_ARGS__);\
-    exit(code);
+/* Exit code when called with incorrent usage. */
+#define EXIT_INCORRECT_USAGE 1
+/* Exit code when called with illegal argument. */
+#define EXIT_ILLEGAL_ARGUMENT 2
+/* Exit code when a file cannot be opened. */
+#define EXIT_CANNOT_OPEN 3
+/* Exit code when an unknown error occurred. */
+#define EXIT_UNKNOWN_ERROR -1
+/* Exit code from bw_error. */
+#define EXIT_BW_ERROR(e) (EXIT_CANNOT_OPEN + (e).type)
 
 #define DOC PACKAGE_NAME " - perform bitwise operations on files"
 #define ARGS_DOC "OPERATOR [OPERAND]"
@@ -47,7 +51,7 @@ typedef struct arguments {
 // Argp options
 const char *argp_program_version = PACKAGE_STRING;
 const char *argp_program_bug_address = PACKAGE_BUGREPORT;
-error_t argp_err_exit_status = ERROR_INCORRECT_USAGE;
+error_t argp_err_exit_status = EXIT_INCORRECT_USAGE;
 
 // Options definitions
 static struct argp_option options[] = {
@@ -89,9 +93,10 @@ static eof_mode parse_eof_mode(char *arg) {
         return EOF_ZERO;
     } else if (matches_option(arg, "one")) {
         return EOF_ONE;
-    } else {
-        error(ERROR_ILLEGAL_ARGUMENT, "Unrecognised EOF mode: %s", arg);
     }
+    
+    error(EXIT_ILLEGAL_ARGUMENT, 0, "Unrecognised EOF mode '%s'", arg);
+    return -1;
 }
 
 static operator parse_operator(char *arg) {
@@ -107,9 +112,10 @@ static operator parse_operator(char *arg) {
         return OP_LSHIFT;
     } else if (matches_option(arg, ">>") || matches_option(arg, "rshift")) {
         return OP_RSHIFT;
-    } else {
-        error(ERROR_ILLEGAL_ARGUMENT, "Unrecognised operator: %s", arg);
     }
+    
+    error(EXIT_ILLEGAL_ARGUMENT, 0, "Unrecognised operator '%s'", arg);
+    return -1;
 }
 
 static void parse_operand(operator operator, operand *operand, char *arg) {
@@ -122,11 +128,11 @@ static void parse_operand(operator operator, operand *operand, char *arg) {
             break;
         case OP_LSHIFT: case OP_RSHIFT:
             if (sscanf(arg, "%zu", &operand->shift) != 1) {
-                error(ERROR_ILLEGAL_ARGUMENT, "Invalid shift amount: %s", arg);
+                error(EXIT_ILLEGAL_ARGUMENT, 0, "Invalid shift amount '%s'", arg);
             }
             break;
         default:
-            error(ERROR_INCORRECT_USAGE, "Operator does not take an operand");
+            error(EXIT_INCORRECT_USAGE, 0, "Operator does not take an operand");
     }
 }
 
@@ -158,7 +164,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
             if (state->arg_num == 0) {
                 argp_usage(state);
             } else if (state->arg_num == 1 && args->operator != OP_NOT) {
-                error(ERROR_INCORRECT_USAGE, "Operator requires an operand");
+                error(EXIT_INCORRECT_USAGE, 0, "Operator requires an operand");
             }
             
             break;
@@ -185,7 +191,7 @@ int main(int argc, char *argv[]) {
         input = fopen(args.input, "rb");
         
         if (!input) {
-            error(ERROR_IO_ERROR, "Can't open input: %s", args.input);
+            error(EXIT_CANNOT_OPEN, errno, "%s", args.input);
         }
     }
     
@@ -194,7 +200,7 @@ int main(int argc, char *argv[]) {
         output = fopen(args.output, "wb");
         
         if (!output) {
-            error(ERROR_IO_ERROR, "Can't open output: %s", args.output);
+            error(EXIT_CANNOT_OPEN, errno, "%s", args.output);
         }
     }
     
@@ -203,41 +209,41 @@ int main(int argc, char *argv[]) {
         operand = fopen(args.operand.file, "rb");
         
         if (!operand) {
-            error(ERROR_IO_ERROR, "Can't open operand: %s", args.operand.file);
+            error(EXIT_CANNOT_OPEN, errno, "%s", args.operand.file);
         }
     }
     
-    bw_error error = BW_ERROR_NONE;
+    bw_error e = no_error;
     switch (args.operator) {
         case OP_OR:
             if (operand) {
-                error = or_file(input, output, operand, args.eof);
+                e = or_file(input, output, operand, args.eof);
             } else {
-                error = or_byte(input, output, args.operand.byte);
+                e = or_byte(input, output, args.operand.byte);
             }
             break;
         case OP_AND:
             if (operand) {
-                error = and_file(input, output, operand, args.eof);
+                e = and_file(input, output, operand, args.eof);
             } else {
-                error = and_byte(input, output, args.operand.byte);
+                e = and_byte(input, output, args.operand.byte);
             }
             break;
         case OP_XOR:
             if (operand) {
-                error = xor_file(input, output, operand, args.eof);
+                e = xor_file(input, output, operand, args.eof);
             } else {
-                error = xor_byte(input, output, args.operand.byte);
+                e = xor_byte(input, output, args.operand.byte);
             }
             break;
         case OP_NOT:
-            error = not(input, output);
+            e = not(input, output);
             break;
         case OP_LSHIFT:
-            error = lshift(input, output, args.operand.shift);
+            e = lshift(input, output, args.operand.shift);
             break;
         case OP_RSHIFT:
-            error = rshift(input, output, args.operand.shift);
+            e = rshift(input, output, args.operand.shift);
             break;
     }
     
@@ -253,27 +259,28 @@ int main(int argc, char *argv[]) {
     }
     
     // Handle errors
-    if (error) {
-        switch (error) {
-            case BW_ERROR_INPUT_READ:
-                error(ERROR_IO_ERROR, "Error reading from input");
+    if (e.type) {
+        char *file;
+        switch (e.type) {
+            case BW_ERR_INPUT_READ:
+                file = args.input;
                 break;
-            case BW_ERROR_OUTPUT_WRITE:
-                error(ERROR_IO_ERROR, "Error writing to output");
+            case BW_ERR_OUTPUT_WRITE:
+                file = args.output;
                 break;
-            case BW_ERROR_OPERAND_READ:
-                error(ERROR_IO_ERROR, "Error reading from operand file");
+            case BW_ERR_OPERAND_READ:
+            case BW_ERR_OPERAND_SEEK:
+                file = args.operand.file;
                 break;
-            case BW_ERROR_OPERAND_EOF:
-                error(ERROR_IO_ERROR, "Unexpected EOF while reading operand file");
-                break;
-            case BW_ERROR_OPERAND_SEEK:
-                error(ERROR_IO_ERROR, "Cannot seek operand file");
-                break;
+            // Special cases
+            case BW_ERR_OPERAND_EOF:
+                error(EXIT_BW_ERROR(e), 0, "%s: Operand file too short", args.operand.file);
             default:
-                error(ERROR_IO_ERROR, "Unknown error");
+                error(EXIT_UNKNOWN_ERROR, 0, "Unknown error");
         }
-    } else {
-        return EXIT_SUCCESS;
+        
+        error(EXIT_BW_ERROR(e), e.error_number, "%s", file);
     }
+    
+    return EXIT_SUCCESS;
 }

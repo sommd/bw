@@ -30,20 +30,27 @@ typedef enum operator {
     OP_RSHIFT,
 } operator;
 
-typedef struct operand {
-    byte byte;
-    shift shift;
-    char *file;
-} operand;
-
 // Arguments struct
 typedef struct arguments {
     // Input/output files
     char *input, *output;
     // Operator
     operator operator;
-    // Operand value
-    operand operand;
+    // Operand
+    struct {
+        // Type
+        enum {
+            OPERAND_BYTE,
+            OPERAND_SHIFT,
+            OPERAND_FILE,
+        } type;
+        // Value
+        union {
+            byte byte;
+            shift shift;
+            char *file;
+        };
+    } operand;
     // EOF Mode
     eof_mode eof;
 } arguments;
@@ -118,16 +125,19 @@ static operator parse_operator(char *arg) {
     return -1;
 }
 
-static void parse_operand(operator operator, operand *operand, char *arg) {
+static void parse_operand(operator operator, arguments *args, char *arg) {
     switch (operator) {
         case OP_OR: case OP_AND: case OP_XOR:
             // Parse as byte if possible, otherwise assume file
-            if (sscanf(arg, "%hhi", &operand->byte) != 1) {
-                operand->file = arg;
+            args->operand.type = OPERAND_BYTE;
+            if (sscanf(arg, "%hhi", &args->operand.byte) != 1) {
+                args->operand.type = OPERAND_FILE;
+                args->operand.file = arg;
             }
             break;
         case OP_LSHIFT: case OP_RSHIFT:
-            if (sscanf(arg, "%zu", &operand->shift) != 1) {
+            args->operand.type = OPERAND_SHIFT;
+            if (sscanf(arg, "%zu", &args->operand.shift) != 1) {
                 error(EXIT_ILLEGAL_ARGUMENT, 0, "Invalid shift amount '%s'", arg);
             }
             break;
@@ -156,7 +166,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
                 args->operator = parse_operator(arg);
             } else if (state->arg_num == 1) {
                 // Operand
-                parse_operand(args->operator, &args->operand, arg);
+                parse_operand(args->operator, args, arg);
             }
             
             break;
@@ -205,7 +215,7 @@ int main(int argc, char *argv[]) {
     }
     
     FILE *operand = NULL;
-    if (args.operand.file) {
+    if (args.operand.type == OPERAND_FILE) {
         operand = fopen(args.operand.file, "rb");
         
         if (!operand) {

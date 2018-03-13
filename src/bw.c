@@ -13,10 +13,12 @@
 #define EXIT_ILLEGAL_ARGUMENT 2
 /* Exit code when a file cannot be opened. */
 #define EXIT_CANNOT_OPEN 3
+/* Exit code when a file cannot be closed. */
+#define EXIT_CANNOT_CLOSE 4
 /* Exit code when an unknown error occurred. */
 #define EXIT_UNKNOWN_ERROR -1
 /* Exit code from bw_error. */
-#define EXIT_BW_ERROR(e) (EXIT_CANNOT_OPEN + (e).type)
+#define EXIT_BW_ERROR(e) (EXIT_CANNOT_CLOSE + (e).type)
 
 #define DOC PACKAGE_NAME " - perform bitwise operations on files"
 #define ARGS_DOC "OPERATOR [OPERAND]"
@@ -258,14 +260,14 @@ int main(int argc, char *argv[]) {
     }
     
     // Close files
-    if (input != stdin) {
-        fclose(input);
+    if (input != stdin && fclose(input)) {
+        error(EXIT_CANNOT_CLOSE, errno, "%s", args.input);
     }
-    if (output != stdout) {
-        fclose(output);
+    if (output != stdout && fclose(output)) {
+        error(EXIT_CANNOT_CLOSE, errno, "%s", args.output);
     }
-    if (operand) {
-        fclose(operand);
+    if (operand && fclose(operand)) {
+        error(EXIT_CANNOT_CLOSE, errno, "%s", args.operand.file);
     }
     
     // Handle errors

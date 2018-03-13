@@ -258,22 +258,30 @@ bw_error lshift(FILE *input, FILE *output, shift amount) {
     return no_error;
 }
 
-bw_error rshift(FILE *input, FILE *output, shift amount) {
-    // TODO: Truncate output to size of input
-    
+static bw_error rshift_size(FILE *input, FILE *output, shift amount, size_t size) {
     // Calculate byte and bit offset
     size_t byte_offset = amount / 8;
     shift bit_offset = amount % 8;
     
-    // Zero-fill first byte_offset bytes of output
-    if (fzero(output, byte_offset) < byte_offset) {
+    // Track number of bytes remaining
+    size_t bytes_rem = size;
+    
+    // Output MIN(byte_offset, bytes_rem) zeroes as shifted in bits
+    size_t zero_bytes = MIN(byte_offset, bytes_rem);
+    size_t zeroed = fzero(output, zero_bytes);
+    bytes_rem -= zeroed;
+    if (zeroed < zero_bytes) {
         return create_error(BW_ERR_OUTPUT_WRITE);
+    } else if (!bytes_rem) {
+        // All zero bits shifted in, nothing else to do
+        return no_error;
     }
     
     byte buf[BW_BUF_SIZE];
     while (true) {
         // Read from input
-        size_t read = fread(buf, BYTE_SIZE, BW_BUF_SIZE, input);
+        size_t read = fread(buf, BYTE_SIZE, MIN(BW_BUF_SIZE, bytes_rem), input);
+        bytes_rem -= read;
         if (!read) {
             if (ferror(input)) {
                 return create_error(BW_ERR_OUTPUT_WRITE);
@@ -289,7 +297,22 @@ bw_error rshift(FILE *input, FILE *output, shift amount) {
         if (fwrite(buf, BYTE_SIZE, read, output) < read) {
             return create_error(BW_ERR_OUTPUT_WRITE);
         }
+        
+        // Break if no bytes remaining
+        if (!bytes_rem) {
+            break;
+        }
     }
     
     return no_error;
+}
+
+bw_error rshift(FILE *input, FILE *output, shift amount) {
+    intmax_t size = fsize(input);
+    if (size != -1) {
+        return rshift_size(input, output, amount, size);
+    } else {
+        // TODO
+        return create_error(-1);
+    }
 }

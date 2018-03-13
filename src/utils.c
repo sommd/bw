@@ -2,6 +2,7 @@
 
 #include <sys/stat.h>
 #include <unistd.h>
+#include <assert.h>
 
 size_t fskip(FILE *f, size_t count) {
     // Try to seek if regular file
@@ -43,4 +44,40 @@ size_t fzero(FILE *f, size_t count) {
     } while (total < count && written > 0);
     
     return total;
+}
+
+void memshiftl(byte *buf, size_t size, shift shift) {
+    // Check args
+    assert(shift <= 8);
+    if (size == 0) {
+        return;
+    }
+    
+    // Shift first size - 1 bytes
+    for (size_t i = 0; i < size - 1; i++) {
+        byte left = buf[i] << shift;
+        byte right = buf[i + 1] >> (8 - shift);
+        buf[i] = left | right;
+    }
+    
+    // Shift last byte
+    buf[size - 1] <<= shift;
+}
+
+void memshiftr(byte *buf, size_t size, shift shift) {
+    // Check args
+    assert(shift <= 8);
+    if (size == 0) {
+        return;
+    }
+    
+    // Shift last size - 1 bytes
+    for (size_t i = size - 1; i > 0; i--) {
+        byte left = buf[i - 1] << (8 - shift);
+        byte right = buf[i] >> shift;
+        buf[i] = left | right;
+    }
+    
+    // Shift first byte
+    buf[0] >>= shift;
 }

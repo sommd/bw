@@ -6,9 +6,6 @@
 
 // Types
 
-/* Used as an bit-shift amount, operand for all bitshift operations. */
-typedef size_t shift;
-
 /* Details on type of error (if any) in bitwise functions. */
 typedef struct bw_error {
     enum {

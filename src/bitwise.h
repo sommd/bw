@@ -1,9 +1,7 @@
 #ifndef BITWISE_H
 #define BITWISE_H
 
-#include <stdint.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include "utils.h"
 
 // Types

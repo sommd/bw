@@ -4,19 +4,21 @@
 #include <unistd.h>
 
 size_t fskip(FILE *f, size_t count) {
-    // Try to get size of file
+    // Try to seek if regular file
     struct stat st;
-    if (fstat(fileno(f), &st)) {
-        // Seek up to count or end of file (only if we know our position)
+    if (fstat(fileno(f), &st) != -1 && st.st_mode & S_IFREG) {
+        // Make sure we know our current position to not seek too far
         size_t pos = ftell(f);
-        size_t seek = MIN(count, st.st_size - pos);
-        if (pos != -1 && fseek(f, seek, SEEK_CUR) != -1) {
-            // Return the amount seeked
-            return seek;
+        if (pos != -1) {
+            size_t seek = MIN(count, st.st_size - pos);
+            
+            if (fseek(f, seek, SEEK_CUR)) {
+                return seek;
+            }
         }
     }
     
-    // Stat-ing or seeking failed, fallback to reading bytes
+    // Fallback to consuming bytes
     byte buf[BUF_SIZE];
     size_t total = 0, read;
     do {

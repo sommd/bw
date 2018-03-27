@@ -14,6 +14,10 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
+// Concat macro (works with other macros)
+#define CONCAT(a, b) _CONCAT(a, b)
+#define _CONCAT(a, b) a##b
+
 // Typedef for byte
 #define BYTE_BIT CHAR_BIT
 typedef unsigned char byte;

@@ -5,7 +5,12 @@
 #include <assert.h>
 #include <errno.h>
 
-// Error handling
+// Utils
+
+const bw_error no_error = {
+    .type = BW_ERR_NONE,
+    .error_number = 0
+};
 
 static bw_error create_error(int type) {
     int e = errno;
@@ -18,77 +23,6 @@ static bw_error create_error(int type) {
         .error_number = e
     };
 }
-
-const bw_error no_error = {
-    .type = BW_ERR_NONE,
-    .error_number = 0
-};
-
-// Byte functions
-
-typedef byte (*bw_operation)(byte a, byte b);
-
-/* Generic version of _byte functions. Performs given operation on each byte. */
-static inline bw_error bw_byte(FILE *input, FILE *output, byte operand, bw_operation operation) {
-    byte buf[BUF_SIZE];
-    
-    while (true) {
-        // Read from input
-        size_t read = fread(buf, 1, BUF_SIZE, input);
-        // Check error if nothing read, or return if reached EOF
-        if (!read) {
-            if (ferror(input)) {
-                return create_error(BW_ERR_INPUT_READ);
-            } else {
-                return no_error;
-            }
-        }
-        
-        // Perform operation on each byte of buf
-        for (size_t i = 0; i < read; i++) {
-            buf[i] = operation(buf[i], operand);
-        }
-        
-        // Write to output
-        size_t written = fwrite(buf, 1, read, output);
-        // Error if not enough written
-        if (written != read) {
-            return create_error(BW_ERR_OUTPUT_WRITE);
-        }
-    }
-}
-
-// OR
-
-static inline byte bw_or(byte a, byte b) {
-    return a | b;
-}
-
-bw_error or_byte(FILE *input, FILE *output, byte operand) {
-    return bw_byte(input, output, operand, bw_or);
-}
-
-// AND
-
-static inline byte bw_and(byte a, byte b) {
-    return a & b;
-}
-
-bw_error and_byte(FILE *input, FILE *output, byte operand) {
-    return bw_byte(input, output, operand, bw_and);
-}
-
-// XOR
-
-static inline byte bw_xor(byte a, byte b) {
-    return a ^ b;
-}
-
-bw_error xor_byte(FILE *input, FILE *output, byte operand) {
-    return bw_byte(input, output, operand, bw_xor);
-}
-
-// File functions
 
 /*
  * Handle operand file reaching EOF. Returns error to be returned after writing
@@ -134,76 +68,35 @@ static inline bw_error handle_eof(FILE *operand, eof_mode eof, size_t in_read, b
     return no_error;
 }
 
-/* Generic version of _file functions. Performs given operation on each byte. */
-static inline bw_error bw_file(FILE *input, FILE *output, FILE *operand, eof_mode eof, bw_operation operation) {
-    byte in_buf[BUF_SIZE], op_buf[BUF_SIZE];
-    
-    while (true) {
-        // Read from input
-        size_t in_read = fread(in_buf, 1, BUF_SIZE, input);
-        // Check error if nothing read, or return if reached EOF
-        if (!in_read) {
-            if (ferror(input)) {
-                return create_error(BW_ERR_INPUT_READ);
-            } else {
-                return no_error;
-            }
-        }
-        
-        // Read from operand
-        size_t op_read = fread(in_buf, 1, in_read, operand);
-        // Check error if not enough read, or use EOF mode if EOF reached
-        bw_error op_error = no_error;
-        if (op_read < in_read) {
-            if (feof(operand)) {
-                // Reach EOF
-                op_error = handle_eof(operand, eof, in_read, op_buf, &op_read);
-            } else {
-                // Must be a read error, write as much as we can before
-                // returning the error at the end of this iteration
-                op_error = create_error(BW_ERR_OPERAND_READ);
-            }
-        }
-        
-        // Perform operation on each byte of in_buf
-        for (size_t i = 0; i < op_read; i++) {
-            in_buf[i] = operation(in_buf[i], op_buf[i]);
-        }
-        
-        // Write to output
-        size_t written = fwrite(in_buf, 1, op_read, output);
-        // Error if not enough written
-        if (written != op_read) {
-            return create_error(BW_ERR_OUTPUT_WRITE);
-        }
-        
-        // Return operand error if there was one, or if EOF reached but no error
-        if (op_error.type || op_read < in_read) {
-            return op_error;
-        }
-    }
-}
+// OR
 
-bw_error or_file(FILE *input, FILE *output, FILE *operand, eof_mode eof) {
-    return bw_file(input, output, operand, eof, bw_or);
-}
+#define OP_NAME or
+#define OP(a, b) a |= b
+#include "bitwise_template.inc"
 
-bw_error and_file(FILE *input, FILE *output, FILE *operand, eof_mode eof) {
-    return bw_file(input, output, operand, eof, bw_and);
-}
+// AND
 
-bw_error xor_file(FILE *input, FILE *output, FILE *operand, eof_mode eof) {
-    return bw_file(input, output, operand, eof, bw_xor);
-}
+#define OP_NAME and
+#define OP(a, b) a &= b
+#include "bitwise_template.inc"
 
-// NOT function
+// XOR
 
-static inline byte bw_not(byte a, byte _) {
-    return ~a;
-}
+#define OP_NAME xor
+#define OP(a, b) a ^= b
+#include "bitwise_template.inc"
+
+// NOT
+
+// Define not_byte function which ignores operand argument
+#define OP_NAME not
+#define OP(a, b) a = ~(a)
+#define QUALIFIERS static inline
+#define NO_FILE_FUNCTION
+#include "bitwise_template.inc"
 
 bw_error not(FILE * input, FILE *output) {
-    return bw_byte(input, output, 0, bw_not);
+    return not_byte(input, output, 0);
 }
 
 // Shift functions

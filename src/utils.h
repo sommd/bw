@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <limits.h>
 
 // Global application buf size
 #ifndef BUF_SIZE
@@ -14,7 +15,7 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 // Typedef for byte
-#define BYTE_BITS (sizeof(byte) * CHAR_BIT)
+#define BYTE_BIT CHAR_BIT
 typedef unsigned char byte;
 
 /* Typedef for bit-shift amount. */

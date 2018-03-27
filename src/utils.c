@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+static_assert(sizeof(byte) == 1, "Byte size is not 1");
+
 intmax_t fsize(FILE *f) {
     struct stat st;
     if (fstat(fileno(f), &st) != -1 && st.st_mode & S_IFREG) {

@@ -42,10 +42,10 @@ size_t fzero(FILE *f, size_t count);
  */
 void *freadall(size_t size, size_t *read, FILE *f);
 
-/* Shift all bits in `buf` by `shift` bits left up to 8. */
+/* Shift all bits in `buf` by `shift` bits left up to BYTE_BIT. */
 void memshiftl(byte *buf, size_t size, shift shift);
 
-/* Shift all bits in `buf` by `shift` bits right up to 8. */
+/* Shift all bits in `buf` by `shift` bits right up to BYTE_BIT. */
 void memshiftr(byte *buf, size_t size, shift shift);
 
 #endif

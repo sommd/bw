@@ -122,15 +122,15 @@ void *freadall(size_t item_size, size_t *total_items, FILE *f) {
 
 void memshiftl(byte *buf, size_t size, shift shift) {
     // Check args
-    assert(shift <= 8);
-    if (size == 0) {
+    assert(shift <= BYTE_BIT);
+    if (size == 0 || shift == 0) {
         return;
     }
     
     // Shift first size - 1 bytes
     for (size_t i = 0; i < size - 1; i++) {
         byte left = buf[i] << shift;
-        byte right = buf[i + 1] >> (8 - shift);
+        byte right = buf[i + 1] >> (BYTE_BIT - shift);
         buf[i] = left | right;
     }
     
@@ -140,14 +140,14 @@ void memshiftl(byte *buf, size_t size, shift shift) {
 
 void memshiftr(byte *buf, size_t size, shift shift) {
     // Check args
-    assert(shift <= 8);
-    if (size == 0) {
+    assert(shift <= BYTE_BIT);
+    if (size == 0 || shift == 0) {
         return;
     }
     
     // Shift last size - 1 bytes
     for (size_t i = size - 1; i > 0; i--) {
-        byte left = buf[i - 1] << (8 - shift);
+        byte left = buf[i - 1] << (BYTE_BIT - shift);
         byte right = buf[i] >> shift;
         buf[i] = left | right;
     }

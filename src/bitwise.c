@@ -208,107 +208,77 @@ bw_error not(FILE * input, FILE *output) {
 
 // Shift functions
 
-bw_error lshift(FILE *input, FILE *output, shift amount) {
-    // Calculate byte and bit offset
-    size_t byte_offset = amount / 8;
-    shift bit_offset = amount % 8;
+typedef void (*bw_shifter)(byte *buffer, size_t size, shift amount);
+
+/* Generic function for shifting. Actual shifting done by `shifter` function. */
+static bw_error bw_shift(FILE *input, FILE *output, shift amount, bw_shifter shifter) {
+    // Keep track of most recent error to return at end
+    bw_error error = no_error;
     
-    // Track total bytes in input
-    size_t total_bytes = 0;
-    
-    // Skip byte_offset bytes from file
-    size_t skipped = fskip(input, byte_offset);
-    total_bytes += skipped;
-    if (skipped < byte_offset && ferror(input)) {
-        return create_error(BW_ERR_INPUT_READ);
+    // Read entire `input`
+    size_t size;
+    byte *buffer = freadall(sizeof(byte), &size, input);
+    // Record error if there was one, but continue with what we did read
+    if (ferror(input)) {
+        error = create_error(BW_ERR_INPUT_READ);
     }
     
-    byte buf[BUF_SIZE];
-    while (true) {
-        // Read from input
-        size_t read = fread(buf, sizeof(byte), BUF_SIZE, input);
-        total_bytes += read;
-        if (!read) {
-            if (ferror(input)) {
-                return create_error(BW_ERR_INPUT_READ);
-            } else {
-                break;
-            }
-        }
-        
-        // Shift buf
-        memshiftl(buf, read, bit_offset);
-        
-        // Write to output
-        if (fwrite(buf, sizeof(byte), read, output) < read) {
-            return create_error(BW_ERR_OUTPUT_WRITE);
-        }
+    // Do shift
+    shifter(buffer, size, amount);
+    
+    // Write to output
+    size_t written = fwrite(buffer, sizeof(byte), size, output);
+    if (written != size) {
+        error = create_error(BW_ERR_OUTPUT_WRITE);
     }
     
-    // Output MIN(byte_offset, total_bytes) zeroes as shifted in bits
-    size_t zero_bytes = MIN(byte_offset, total_bytes);
-    if (fzero(output, zero_bytes) < zero_bytes) {
-        return create_error(BW_ERR_OUTPUT_WRITE);
-    }
-    
-    return no_error;
+    return error;
 }
 
-static bw_error rshift_size(FILE *input, FILE *output, shift amount, size_t size) {
+static void lshifter(byte *buffer, size_t size, shift amount) {
     // Calculate byte and bit offset
-    size_t byte_offset = amount / 8;
-    shift bit_offset = amount % 8;
+    size_t byte_offset = MIN(amount / BYTE_BIT, size);
+    shift bit_offset = amount % BYTE_BIT;
     
-    // Track number of bytes remaining
-    size_t bytes_rem = size;
-    
-    // Output MIN(byte_offset, bytes_rem) zeroes as shifted in bits
-    size_t zero_bytes = MIN(byte_offset, bytes_rem);
-    size_t zeroed = fzero(output, zero_bytes);
-    bytes_rem -= zeroed;
-    if (zeroed < zero_bytes) {
-        return create_error(BW_ERR_OUTPUT_WRITE);
-    } else if (!bytes_rem) {
-        // All zero bits shifted in, nothing else to do
-        return no_error;
+    // Move bytes left by byte_offset
+    if (byte_offset > 0) {
+        // Copy bytes to left
+        for (size_t i = 0; i + byte_offset < size; i++) {
+            buffer[i] = buffer[i + byte_offset];
+        }
+        
+        // Zero remaining bytes
+        memset(buffer + size - byte_offset, 0, byte_offset);
     }
     
-    byte buf[BUF_SIZE];
-    while (true) {
-        // Read from input
-        size_t read = fread(buf, sizeof(byte), MIN(BUF_SIZE, bytes_rem), input);
-        bytes_rem -= read;
-        if (!read) {
-            if (ferror(input)) {
-                return create_error(BW_ERR_OUTPUT_WRITE);
-            } else {
-                break;
-            }
+    // Lshift by bit_offset
+    memshiftl(buffer, size - byte_offset, bit_offset);
+}
+
+bw_error lshift(FILE *input, FILE *output, shift amount) {
+    return bw_shift(input, output, amount, lshifter);
+}
+
+static void rshifter(byte *buffer, size_t size, shift amount) {
+    // Calculate byte and bit offset
+    size_t byte_offset = MIN(amount / BYTE_BIT, size);
+    shift bit_offset = amount % BYTE_BIT;
+    
+    // Move bytes right by byte_offset
+    if (byte_offset > 0) {
+        // Copy bytes to right
+        for (size_t i = size - 1; i > byte_offset; i--) {
+            buffer[i] = buffer[i - byte_offset];
         }
         
-        // Shift buf
-        memshiftr(buf, read, bit_offset);
-        
-        // Write to output
-        if (fwrite(buf, sizeof(byte), read, output) < read) {
-            return create_error(BW_ERR_OUTPUT_WRITE);
-        }
-        
-        // Break if no bytes remaining
-        if (!bytes_rem) {
-            break;
-        }
+        // Zero remaining bytes
+        memset(buffer, 0, byte_offset);
     }
     
-    return no_error;
+    // Rshift by bit_offset
+    memshiftr(buffer + byte_offset, size - byte_offset, bit_offset);
 }
 
 bw_error rshift(FILE *input, FILE *output, shift amount) {
-    intmax_t size = fsize(input);
-    if (size != -1) {
-        return rshift_size(input, output, amount, size);
-    } else {
-        // TODO
-        return create_error(-1);
-    }
+    return bw_shift(input, output, amount, rshifter);
 }

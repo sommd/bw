@@ -7,9 +7,12 @@
 #include <stdbool.h>
 #include <string.h>
 
-intmax_t fsize(FILE *f) {
+off_t fsize(FILE *f) {
     struct stat st;
-    if (fstat(fileno(f), &st) != -1 && st.st_mode & S_IFREG) {
+    int res = fstat(fileno(f), &st);
+    
+    // Check `f` is a regular file and it's size is a sane value
+    if (res != -1 && (st.st_mode & S_IFREG) && st.st_size >= 0) {
         return st.st_size;
     } else {
         return -1;
@@ -18,14 +21,14 @@ intmax_t fsize(FILE *f) {
 
 size_t fskip(FILE *f, size_t count) {
     // Try to seek if regular file
-    intmax_t size = fsize(f);
+    off_t size = fsize(f);
     if (size != -1) {
         // Make sure we know our current position to not seek too far
-        size_t pos = ftell(f);
+        off_t pos = ftello(f);
         if (pos != -1) {
-            size_t seek = MIN(count, ((size_t) size) - pos);
+            off_t seek = MIN(count, size - pos);
             
-            if (fseek(f, seek, SEEK_CUR)) {
+            if (fseeko(f, seek, SEEK_CUR)) {
                 return seek;
             }
         }
@@ -76,7 +79,7 @@ void *freadall(size_t item_size, size_t *total_items, FILE *f) {
     byte *out_buf = NULL;
     
     // Try to get size of `f` and pre-allocate out_buf
-    intmax_t f_size = fsize(f);
+    off_t f_size = fsize(f);
     // If we can't read a whole item, we want to return NULL.
     if (f_size > 0 && f_size >= item_size) {
         out_buf_items = f_size / item_size;

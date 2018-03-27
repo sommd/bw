@@ -23,7 +23,7 @@ _Static_assert(sizeof(byte) == 1, "Byte size is not 1");
 typedef size_t shift;
 
 /* Get the total size of `f` if `f` is a regular file, -1 otherwise. */
-intmax_t fsize(FILE *f);
+off_t fsize(FILE *f);
 
 /* Skip `count` bytes of `f`. Returns the amount of bytes skipped */
 size_t fskip(FILE *f, size_t count);

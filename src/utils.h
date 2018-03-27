@@ -17,6 +17,7 @@
 // Typedef for byte
 #define BYTE_BIT CHAR_BIT
 typedef unsigned char byte;
+_Static_assert(sizeof(byte) == 1, "Byte size is not 1");
 
 /* Typedef for bit-shift amount. */
 typedef size_t shift;

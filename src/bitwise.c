@@ -5,10 +5,6 @@
 #include <assert.h>
 #include <errno.h>
 
-#ifndef BW_BUF_SIZE
-#define BW_BUF_SIZE BUFSIZ
-#endif
-
 // Error handling
 
 static bw_error create_error(int type) {
@@ -34,11 +30,11 @@ typedef byte (*bw_operation)(byte a, byte b);
 
 /* Generic version of _byte functions. Performs given operation on each byte. */
 static inline bw_error bw_byte(FILE *input, FILE *output, byte operand, bw_operation operation) {
-    byte buf[BW_BUF_SIZE];
+    byte buf[BUF_SIZE];
     
     while (true) {
         // Read from input
-        size_t read = fread(buf, 1, BW_BUF_SIZE, input);
+        size_t read = fread(buf, 1, BUF_SIZE, input);
         // Check error if nothing read, or return if reached EOF
         if (!read) {
             if (ferror(input)) {
@@ -140,11 +136,11 @@ static inline bw_error handle_eof(FILE *operand, eof_mode eof, size_t in_read, b
 
 /* Generic version of _file functions. Performs given operation on each byte. */
 static inline bw_error bw_file(FILE *input, FILE *output, FILE *operand, eof_mode eof, bw_operation operation) {
-    byte in_buf[BW_BUF_SIZE], op_buf[BW_BUF_SIZE];
+    byte in_buf[BUF_SIZE], op_buf[BUF_SIZE];
     
     while (true) {
         // Read from input
-        size_t in_read = fread(in_buf, 1, BW_BUF_SIZE, input);
+        size_t in_read = fread(in_buf, 1, BUF_SIZE, input);
         // Check error if nothing read, or return if reached EOF
         if (!in_read) {
             if (ferror(input)) {
@@ -227,10 +223,10 @@ bw_error lshift(FILE *input, FILE *output, shift amount) {
         return create_error(BW_ERR_INPUT_READ);
     }
     
-    byte buf[BW_BUF_SIZE];
+    byte buf[BUF_SIZE];
     while (true) {
         // Read from input
-        size_t read = fread(buf, sizeof(byte), BW_BUF_SIZE, input);
+        size_t read = fread(buf, sizeof(byte), BUF_SIZE, input);
         total_bytes += read;
         if (!read) {
             if (ferror(input)) {
@@ -277,10 +273,10 @@ static bw_error rshift_size(FILE *input, FILE *output, shift amount, size_t size
         return no_error;
     }
     
-    byte buf[BW_BUF_SIZE];
+    byte buf[BUF_SIZE];
     while (true) {
         // Read from input
-        size_t read = fread(buf, sizeof(byte), MIN(BW_BUF_SIZE, bytes_rem), input);
+        size_t read = fread(buf, sizeof(byte), MIN(BUF_SIZE, bytes_rem), input);
         bytes_rem -= read;
         if (!read) {
             if (ferror(input)) {

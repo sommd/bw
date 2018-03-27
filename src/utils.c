@@ -78,7 +78,7 @@ void *freadall(size_t item_size, size_t *total_items, FILE *f) {
     // Try to get size of `f` and pre-allocate out_buf
     intmax_t f_size = fsize(f);
     // If we can't read a whole item, we want to return NULL.
-    if (f_size >= item_size) {
+    if (f_size > 0 && f_size >= item_size) {
         out_buf_items = f_size / item_size;
         out_buf = malloc(out_buf_items * item_size);
         

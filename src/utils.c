@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 
 static_assert(sizeof(byte) == 1, "Byte size is not 1");
@@ -59,25 +60,63 @@ size_t fzero(FILE *f, size_t count) {
     return total;
 }
 
-size_t freadall(FILE *f, byte **out) {
-    byte buffer[BUF_SIZE];
+void *freadall(size_t item_size, size_t *total_items, FILE *f) {
+    // Initalise `total_items` to 0
+    *total_items = 0;
     
-    *out = NULL;
-    size_t total = 0;
-    size_t read;
-    do {
-        // Read into buffer
-        read = fread(buffer, sizeof(byte), BUF_SIZE, f);
-        
-        // Append data to out
-        *out = realloc(*out, total + read);
-        memcpy(out + total, buffer, read);
-        
-        // Update total
-        total += read;
-    } while (read > 0);
+    // Check item_size is valid
+    if (item_size == 0) {
+        return NULL;
+    }
     
-    return total;
+    // Reading buffer
+    size_t read_buf_items = MAX(BUF_SIZE / item_size, 1);
+    byte read_buf[read_buf_items * item_size];
+    
+    // Output buffer
+    size_t out_buf_items = 0;
+    byte *out_buf = NULL;
+    
+    // Try to get size of `f` and pre-allocate out_buf
+    intmax_t f_size = fsize(f);
+    // If we can't read a whole item, we want to return NULL.
+    if (f_size >= item_size) {
+        out_buf_items = f_size / item_size;
+        out_buf = malloc(out_buf_items * item_size);
+        
+        // Check malloc succeeded
+        if (!out_buf) {
+            return NULL;
+        }
+    }
+    
+    while (true) {
+        // Read read_buf_items into read_buf
+        size_t read_items = fread(read_buf, item_size, read_buf_items, f);
+        if (read_items == 0) {
+            break;
+        }
+        
+        // Resize out_buf if needed
+        if (*total_items + read_items > out_buf_items) {
+            out_buf_items = *total_items + read_items;
+            byte *new_out_buf = realloc(out_buf, out_buf_items * item_size);
+            
+            // Return what we have if realloc failed
+            if (!new_out_buf) {
+                break;
+            }
+            
+            out_buf = new_out_buf;
+        }
+        
+        // Copy items from read_buf to out_buf
+        byte *out_buf_dest = out_buf + (*total_items * item_size);
+        memcpy(out_buf_dest, read_buf, read_items * item_size);
+        *total_items += read_items;
+    }
+    
+    return out_buf;
 }
 
 void memshiftl(byte *buf, size_t size, shift shift) {

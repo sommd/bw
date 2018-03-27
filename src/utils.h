@@ -31,11 +31,15 @@ size_t fskip(FILE *f, size_t count);
 size_t fzero(FILE *f, size_t count);
 
 /*
- * Read `f` into a dynamic buffer until EOF is reached. The number of bytes read
- * will be returned and `out` will be set to point to the buffer, which should
- * by freed by free().
+ * Read as many items of `size` bytes from `f` into a dynamically allocated
+ * buffer as possible and return the buffer. The number of items read will be
+ * put in `read`.
+ * 
+ * May return NULL if no bytes were read, or if the initial buffer could not be
+ * allocated. If an error occurs, the items read up to that point will be
+ * returned and ferror() will be set.
  */
-size_t freadall(FILE *f, byte **out);
+void *freadall(size_t size, size_t *read, FILE *f);
 
 /* Shift all bits in `buf` by `shift` bits left up to 8. */
 void memshiftl(byte *buf, size_t size, shift shift);

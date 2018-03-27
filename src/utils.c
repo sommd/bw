@@ -35,7 +35,7 @@ size_t fskip(FILE *f, size_t count) {
     size_t total = 0, read;
     do {
         // Read up to BUF_SIZE or remaining bytes to skip
-        read = fread(buf, BYTE_SIZE, MIN(BUF_SIZE, count - total), f);
+        read = fread(buf, sizeof(byte), MIN(BUF_SIZE, count - total), f);
         total += read;
     } while (total < count && read > 0);
     
@@ -50,7 +50,7 @@ size_t fzero(FILE *f, size_t count) {
     size_t total = 0, written;
     do {
         // Write up to BUF_SIZE or remaining bytes to zero
-        written = fwrite(buf, BYTE_SIZE, MIN(BUF_SIZE, count - total), f);
+        written = fwrite(buf, sizeof(byte), MIN(BUF_SIZE, count - total), f);
         total += written;
     } while (total < count && written > 0);
     
@@ -65,7 +65,7 @@ size_t freadall(FILE *f, byte **out) {
     size_t read;
     do {
         // Read into buffer
-        read = fread(buffer, BYTE_SIZE, BUF_SIZE, f);
+        read = fread(buffer, sizeof(byte), BUF_SIZE, f);
         
         // Append data to out
         *out = realloc(*out, total + read);

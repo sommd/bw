@@ -230,7 +230,7 @@ bw_error lshift(FILE *input, FILE *output, shift amount) {
     byte buf[BW_BUF_SIZE];
     while (true) {
         // Read from input
-        size_t read = fread(buf, BYTE_SIZE, BW_BUF_SIZE, input);
+        size_t read = fread(buf, sizeof(byte), BW_BUF_SIZE, input);
         total_bytes += read;
         if (!read) {
             if (ferror(input)) {
@@ -244,7 +244,7 @@ bw_error lshift(FILE *input, FILE *output, shift amount) {
         memshiftl(buf, read, bit_offset);
         
         // Write to output
-        if (fwrite(buf, BYTE_SIZE, read, output) < read) {
+        if (fwrite(buf, sizeof(byte), read, output) < read) {
             return create_error(BW_ERR_OUTPUT_WRITE);
         }
     }
@@ -280,7 +280,7 @@ static bw_error rshift_size(FILE *input, FILE *output, shift amount, size_t size
     byte buf[BW_BUF_SIZE];
     while (true) {
         // Read from input
-        size_t read = fread(buf, BYTE_SIZE, MIN(BW_BUF_SIZE, bytes_rem), input);
+        size_t read = fread(buf, sizeof(byte), MIN(BW_BUF_SIZE, bytes_rem), input);
         bytes_rem -= read;
         if (!read) {
             if (ferror(input)) {
@@ -294,7 +294,7 @@ static bw_error rshift_size(FILE *input, FILE *output, shift amount, size_t size
         memshiftr(buf, read, bit_offset);
         
         // Write to output
-        if (fwrite(buf, BYTE_SIZE, read, output) < read) {
+        if (fwrite(buf, sizeof(byte), read, output) < read) {
             return create_error(BW_ERR_OUTPUT_WRITE);
         }
         

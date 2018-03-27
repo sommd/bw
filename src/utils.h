@@ -9,12 +9,12 @@
 #define BUF_SIZE BUFSIZ
 #endif
 
+// Min/max macros
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 // Typedef for byte
-#define BYTE_SIZE sizeof(byte)
-#define BYTE_BIT (BYTE_SIZE * CHAR_BIT)
+#define BYTE_BITS (sizeof(byte) * CHAR_BIT)
 typedef unsigned char byte;
 
 /* Typedef for bit-shift amount. */

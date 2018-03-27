@@ -3,6 +3,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
 intmax_t fsize(FILE *f) {
     struct stat st;
@@ -51,6 +53,27 @@ size_t fzero(FILE *f, size_t count) {
         written = fwrite(buf, BYTE_SIZE, MIN(BUF_SIZE, count - total), f);
         total += written;
     } while (total < count && written > 0);
+    
+    return total;
+}
+
+size_t freadall(FILE *f, byte **out) {
+    byte buffer[BUF_SIZE];
+    
+    *out = NULL;
+    size_t total = 0;
+    size_t read;
+    do {
+        // Read into buffer
+        read = fread(buffer, BYTE_SIZE, BUF_SIZE, f);
+        
+        // Append data to out
+        *out = realloc(*out, total + read);
+        memcpy(out + total, buffer, read);
+        
+        // Update total
+        total += read;
+    } while (read > 0);
     
     return total;
 }

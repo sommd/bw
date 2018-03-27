@@ -29,6 +29,13 @@ size_t fskip(FILE *f, size_t count);
 /* Fill `count` bytes of `f` with zeroes. Returns the amount of bytes zeroed. */
 size_t fzero(FILE *f, size_t count);
 
+/*
+ * Read `f` into a dynamic buffer until EOF is reached. The number of bytes read
+ * will be returned and `out` will be set to point to the buffer, which should
+ * by freed by free().
+ */
+size_t freadall(FILE *f, byte **out);
+
 /* Shift all bits in `buf` by `shift` bits left up to 8. */
 void memshiftl(byte *buf, size_t size, shift shift);
 

@@ -122,7 +122,7 @@ void *freadall(size_t item_size, size_t *total_items, FILE *f) {
 
 void memshiftl(byte *buf, size_t size, shift shift) {
     // Check args
-    assert(shift <= BYTE_BIT);
+    assert(shift < BYTE_BIT);
     if (size == 0 || shift == 0) {
         return;
     }
@@ -140,7 +140,7 @@ void memshiftl(byte *buf, size_t size, shift shift) {
 
 void memshiftr(byte *buf, size_t size, shift shift) {
     // Check args
-    assert(shift <= BYTE_BIT);
+    assert(shift < BYTE_BIT);
     if (size == 0 || shift == 0) {
         return;
     }

@@ -120,38 +120,62 @@ void *freadall(size_t item_size, size_t *total_items, FILE *f) {
     return out_buf;
 }
 
-void memshiftl(byte *buf, size_t size, shift shift) {
+void memshiftl(byte *buf, size_t size, shift amount) {
     // Check args
-    assert(shift < BYTE_BIT);
-    if (size == 0 || shift == 0) {
+    assert(amount < size * BYTE_BIT);
+    if (size == 0 || amount == 0) {
         return;
     }
     
-    // Shift first size - 1 bytes
-    for (size_t i = 0; i < size - 1; i++) {
-        byte left = buf[i] << shift;
-        byte right = buf[i + 1] >> (BYTE_BIT - shift);
+    // Calculate byte and bit offset
+    size_t byte_offset = MIN(amount / BYTE_BIT, size);
+    shift bit_offset = amount % BYTE_BIT;
+    
+    // Shift left bytes by byte_offset bytes and bit_offset bits
+    for (size_t i = 0; i < size - byte_offset - 1; i++) {
+        // Lower bits of buf[i + byte_offset]
+        byte left = buf[i + byte_offset] << bit_offset;
+        // Upper bits of buf[i + byte_offset + 1]
+        byte right = buf[i + byte_offset + 1] >> (BYTE_BIT - bit_offset);
+        
         buf[i] = left | right;
     }
     
-    // Shift last byte
-    buf[size - 1] <<= shift;
+    // Shift last byte by byte_offset bytes and bit_offset bits
+    buf[size - byte_offset - 1] = buf[size - 1] << bit_offset;
+    
+    // Zero fill remaining bytes (if there are any)
+    if (byte_offset > 0) {
+        memset(&buf[size - byte_offset], 0, byte_offset);
+    }
 }
 
-void memshiftr(byte *buf, size_t size, shift shift) {
+void memshiftr(byte *buf, size_t size, shift amount) {
     // Check args
-    assert(shift < BYTE_BIT);
-    if (size == 0 || shift == 0) {
+    assert(amount < size * BYTE_BIT);
+    if (size == 0 || amount == 0) {
         return;
     }
     
-    // Shift last size - 1 bytes
-    for (size_t i = size - 1; i > 0; i--) {
-        byte left = buf[i - 1] << (BYTE_BIT - shift);
-        byte right = buf[i] >> shift;
+    // Calculate byte and bit offset
+    size_t byte_offset = MIN(amount / BYTE_BIT, size);
+    shift bit_offset = amount % BYTE_BIT;
+    
+    // Shift right bytes by byte_offset bytes and bit_offset bits
+    for (size_t i = size - 1; i > byte_offset; i--) {
+        // Lower bits of buf[i - byte_offset - 1]
+        byte left = buf[i - byte_offset - 1] << (BYTE_BIT - amount);
+        // Upper bits of buf[i - byte_offset]
+        byte right = buf[i - byte_offset] >> amount;
+        
         buf[i] = left | right;
     }
     
-    // Shift first byte
-    buf[0] >>= shift;
+    // Shift last byte by byte_offset bytes and bit_offset bits
+    buf[byte_offset] = buf[0] << bit_offset;
+    
+    // Zero fill remaining bytes (if there are any)
+    if (byte_offset > 0) {
+        memset(buf, 0, byte_offset);
+    }
 }

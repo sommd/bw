@@ -128,50 +128,10 @@ static bw_error bw_shift(FILE *input, FILE *output, shift amount, bw_shifter shi
     return error;
 }
 
-static void lshifter(byte *buffer, size_t size, shift amount) {
-    // Calculate byte and bit offset
-    size_t byte_offset = MIN(amount / BYTE_BIT, size);
-    shift bit_offset = amount % BYTE_BIT;
-    
-    // Move bytes left by byte_offset
-    if (byte_offset > 0) {
-        // Copy bytes to left
-        for (size_t i = 0; i + byte_offset < size; i++) {
-            buffer[i] = buffer[i + byte_offset];
-        }
-        
-        // Zero remaining bytes
-        memset(buffer + size - byte_offset, 0, byte_offset);
-    }
-    
-    // Lshift by bit_offset
-    memshiftl(buffer, size - byte_offset, bit_offset);
-}
-
 bw_error lshift(FILE *input, FILE *output, shift amount) {
-    return bw_shift(input, output, amount, lshifter);
-}
-
-static void rshifter(byte *buffer, size_t size, shift amount) {
-    // Calculate byte and bit offset
-    size_t byte_offset = MIN(amount / BYTE_BIT, size);
-    shift bit_offset = amount % BYTE_BIT;
-    
-    // Move bytes right by byte_offset
-    if (byte_offset > 0) {
-        // Copy bytes to right
-        for (size_t i = size - 1; i > byte_offset; i--) {
-            buffer[i] = buffer[i - byte_offset];
-        }
-        
-        // Zero remaining bytes
-        memset(buffer, 0, byte_offset);
-    }
-    
-    // Rshift by bit_offset
-    memshiftr(buffer + byte_offset, size - byte_offset, bit_offset);
+    return bw_shift(input, output, amount, memshiftl);
 }
 
 bw_error rshift(FILE *input, FILE *output, shift amount) {
-    return bw_shift(input, output, amount, rshifter);
+    return bw_shift(input, output, amount, memshiftr);
 }

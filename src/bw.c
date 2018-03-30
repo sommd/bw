@@ -20,7 +20,7 @@
 /* Exit code from bw_error. */
 #define EXIT_BW_ERROR(e) (EXIT_CANNOT_CLOSE + (e).type)
 
-#define DOC PACKAGE_NAME " - perform bitwise operations on files"
+#define DOC PROJECT_NAME " - perform bitwise operations on files"
 #define ARGS_DOC "OPERATOR [OPERAND]"
 
 typedef enum operator {
@@ -58,8 +58,8 @@ typedef struct arguments {
 } arguments;
 
 // Argp options
-const char *argp_program_version = PACKAGE_STRING;
-const char *argp_program_bug_address = PACKAGE_BUGREPORT;
+const char *argp_program_version = PROJECT_NAME " " PROJECT_VERSION;
+const char *argp_program_bug_address = PROJECT_BUGREPORT;
 error_t argp_err_exit_status = EXIT_INCORRECT_USAGE;
 
 // Options definitions

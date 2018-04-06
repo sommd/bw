@@ -7,17 +7,23 @@ PROJECT_BUGREPORT=<https://github.com/sommd/bw/issues/new>
 SOURCE_DIR=src
 BUILD_DIR=build
 
-$(shell mkdir -p $(BUILD_DIR))
+OBJECT_DIR=$(BUILD_DIR)/obj
+GEN_DIR=$(BUILD_DIR)/gen
+DEPEND_DIR=$(BUILD_DIR)/dep
+BIN_DIR=$(BUILD_DIR)/bin
 
 # Compiler options
-CFLAGS+=-I$(BUILD_DIR)
+CFLAGS+=-I$(GEN_DIR)
 
 # Automatic variables
-EXE=$(BUILD_DIR)/$(PROJECT_NAME)
 SOURCE_FILES=$(wildcard $(SOURCE_DIR)/*.c)
-OBJECT_FILES=$(patsubst $(SOURCE_DIR)/%.c,$(BUILD_DIR)/%.o,$(SOURCE_FILES))
-GENERATED_FILES=$(patsubst $(SOURCE_DIR)/%.in,$(BUILD_DIR)/%,$(wildcard $(SOURCE_DIR)/*.in))
-DEPEND_FILES=$(OBJECT_FILES:.o=.deps)
+OBJECT_FILES=$(patsubst $(SOURCE_DIR)/%.c,$(OBJECT_DIR)/%.o,$(SOURCE_FILES))
+GEN_FILES=$(patsubst $(SOURCE_DIR)/%.in,$(GEN_DIR)/%,$(wildcard $(SOURCE_DIR)/*.in))
+DEPEND_FILES=$(patsubst $(SOURCE_DIR)/%.c,$(DEPEND_DIR)/%.d,$(SOURCE_FILES))
+EXE=$(BIN_DIR)/$(PROJECT_NAME)
+
+# Create directories
+$(shell mkdir -p $(BUILD_DIR) $(OBJECT_DIR) $(GEN_DIR) $(DEPEND_DIR) $(BIN_DIR))
 
 # Executables
 
@@ -28,21 +34,21 @@ $(EXE): $(OBJECT_FILES)
 
 # Object files
 
-$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c
+$(OBJECT_DIR)/%.o: $(SOURCE_DIR)/%.c
 	$(CC) -c $< $(CFLAGS) -o $@
 
 # Dependencies
 
-.PRECIOUS: $(BUILD_DIR)/%.deps
-$(BUILD_DIR)/%.deps: $(SOURCE_DIR)/%.c $(GENERATED_FILES)
-	$(CC) $(CFLAGS) -MM $< -MT $(@:.deps=.o) > $@
+.PRECIOUS: $(DEPEND_DIR)/%.d
+$(DEPEND_DIR)/%.d: $(SOURCE_DIR)/%.c | $(GEN_FILES)
+	$(CC) $(CFLAGS) -MM $< -MT $(patsubst $(SOURCE_DIR)/%.c,$(OBJECT_DIR)/%.o,$<) -MF $@
 
 include $(DEPEND_FILES)
 
 # Generated files
 
-.PRECIOUS: $(BUILD_DIR)/%
-$(BUILD_DIR)/%: $(SOURCE_DIR)/%.in Makefile
+.PRECIOUS: $(GEN_DIR)/%
+$(GEN_DIR)/%: $(SOURCE_DIR)/%.in Makefile
 	sed -e 's/@PROJECT_NAME@/$(subst /,\/,$(PROJECT_NAME))/g;' \
 		-e 's/@PROJECT_VERSION@/$(subst /,\/,$(PROJECT_VERSION))/g;' \
 		-e 's/@PROJECT_BUGREPORT@/$(subst /,\/,$(PROJECT_BUGREPORT))/g;' \

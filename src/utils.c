@@ -12,7 +12,7 @@ off_t fsize(FILE *f) {
     int res = fstat(fileno(f), &st);
     
     // Check `f` is a regular file and it's size is a sane value
-    if (res != -1 && (st.st_mode & S_IFREG) && st.st_size >= 0) {
+    if (res != -1 && S_ISREG(st.st_mode) && st.st_size >= 0) {
         return st.st_size;
     } else {
         return -1;

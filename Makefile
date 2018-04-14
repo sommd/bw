@@ -26,9 +26,6 @@ EXE=$(BIN_DIR)/$(PROJECT_NAME)
 
 all: $(EXE)
 
-debug: CFLAGS:=$(CFLAGS) -g
-debug: $(EXE)
-
 $(EXE): $(OBJECT_FILES) | $(BIN_DIR)
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
 

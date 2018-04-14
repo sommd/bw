@@ -5,6 +5,7 @@ PROJECT_BUGREPORT=<https://github.com/sommd/bw/issues/new>
 
 # Directories
 SOURCE_DIR=src
+TEST_DIR=test
 BUILD_DIR=build
 
 OBJECT_DIR=$(BUILD_DIR)/obj
@@ -14,33 +15,62 @@ BIN_DIR=$(BUILD_DIR)/bin
 
 # Compiler options
 CFLAGS+=-I$(GEN_DIR)
+$(TEST_OBJECT_FILES): CFLAGS+=-I$(SOURCE_DIR) # Include src headers for test
 
 # Automatic variables
+
 SOURCE_FILES=$(wildcard $(SOURCE_DIR)/*.c)
 OBJECT_FILES=$(patsubst $(SOURCE_DIR)/%.c,$(OBJECT_DIR)/%.o,$(SOURCE_FILES))
 GEN_FILES=$(patsubst $(SOURCE_DIR)/%.in,$(GEN_DIR)/%,$(wildcard $(SOURCE_DIR)/*.in))
 DEPEND_FILES=$(patsubst $(SOURCE_DIR)/%.c,$(DEPEND_DIR)/%.d,$(SOURCE_FILES))
+MAIN=$(SOURCE_DIR)/$(PROJECT_NAME).c
 EXE=$(BIN_DIR)/$(PROJECT_NAME)
+
+TEST_SOURCE_FILES=$(wildcard $(TEST_DIR)/*.c)
+TEST_OBJECT_FILES=$(patsubst $(TEST_DIR)/%.c,$(OBJECT_DIR)/%.o,$(TEST_SOURCE_FILES))
+TEST_DEPEND_FILES=$(patsubst $(TEST_DIR)/%.c,$(DEPEND_DIR)/%.d,$(TEST_SOURCE_FILES))
+TEST_MAIN=$(TEST_DIR)/$(PROJECT_NAME)-test.c
+TEST_EXE=$(BIN_DIR)/$(PROJECT_NAME)-test
+
+# Targets
+
+.PHONY: all
+all: $(EXE) $(TEST_EXE)
+
+.PHONY: check
+check: $(TEST_EXE)
+	$(TEST_EXE)
 
 # Executables
 
-all: $(EXE)
+$(EXE): $(OBJECT_FILES)
+$(TEST_EXE): $(filter $(MAIN),$(OBJECT_FILES)) $(TEST_OBJECT_FILES)
 
-$(EXE): $(OBJECT_FILES) | $(BIN_DIR)
+$(EXE) $(TEST_EXE): | $(BIN_DIR)
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@
 
 # Object files
 
-$(OBJECT_DIR)/%.o: $(SOURCE_DIR)/%.c | $(OBJECT_DIR)
+.SECONDEXPANSION:
+$(OBJECT_FILES): $$(patsubst $(OBJECT_DIR)/%.o,$(SOURCE_DIR)/%.c,$$@)
+.SECONDEXPANSION:
+$(TEST_OBJECT_FILES): $$(patsubst $(OBJECT_DIR)/%.o,$(TEST_DIR)/%.c,$$@)
+
+$(OBJECT_FILES) $(TEST_OBJECT_FILES): | $(OBJECT_DIR)
 	$(CC) -c $< $(CFLAGS) -o $@
 
 # Dependencies
 
-.PRECIOUS: $(DEPEND_DIR)/%.d
-$(DEPEND_DIR)/%.d: $(SOURCE_DIR)/%.c | $(GEN_FILES) $(DEPEND_DIR)
-	$(CC) $(CFLAGS) -MM $< -MT $(patsubst $(SOURCE_DIR)/%.c,$(OBJECT_DIR)/%.o,$<) -MF $@
+.SECONDEXPANSION:
+$(DEPEND_FILES): $$(patsubst $(DEPEND_DIR)/%.d,$(SOURCE_DIR)/%.c,$$@)
+.SECONDEXPANSION:
+$(TEST_DEPEND_FILES): $$(patsubst $(DEPEND_DIR)/%.d,$(TEST_DIR)/%.c,$$@)
 
-include $(DEPEND_FILES)
+.PRECIOUS: $(DEPEND_FILES) $(TEST_DEPEND_FILES)
+$(DEPEND_FILES) $(TEST_DEPEND_FILES): | $(GEN_FILES) $(DEPEND_DIR)
+	$(CC) $(CFLAGS) -MM $< -MT $(patsubst $(DEPEND_DIR)/%.d,$(OBJECT_DIR)/%.o,$@) -MF $@
+
+include $(DEPEND_FILES) $(TEST_DEPEND_FILES)
 
 # Generated files
 

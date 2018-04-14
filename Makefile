@@ -74,8 +74,11 @@ include $(DEPEND_FILES) $(TEST_DEPEND_FILES)
 
 # Generated files
 
-.PRECIOUS: $(GEN_DIR)/%
-$(GEN_DIR)/%: $(SOURCE_DIR)/%.in Makefile | $(GEN_DIR)
+.SECONDEXPANSION:
+$(GEN_FILES): $$(patsubst $(GEN_DIR)/%,$(SOURCE_DIR)/%.in,$$@) Makefile
+
+.PRECIOUS: $(GEN_FILES)
+$(GEN_FILES): | $(GEN_DIR)
 	sed -e 's/@PROJECT_NAME@/$(subst /,\/,$(PROJECT_NAME))/g;' \
 		-e 's/@PROJECT_VERSION@/$(subst /,\/,$(PROJECT_VERSION))/g;' \
 		-e 's/@PROJECT_BUGREPORT@/$(subst /,\/,$(PROJECT_BUGREPORT))/g;' \

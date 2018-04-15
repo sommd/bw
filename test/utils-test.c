@@ -102,6 +102,39 @@ START_TEST(test_fskip_eof) {
     ck_assert_int_eq(ftell(reg_file), MAX_SIZE);
 } END_TEST
 
+// fzero
+
+void setup_fzero() {
+    ck_assert(reg_file = tmpfile());
+}
+
+void teardown_fzero() {
+    fclose(reg_file);
+}
+
+/* Test fzero with various counts. */
+START_TEST(test_fzero) {
+    size_t n = sizes[_i];
+    
+    ck_assert_int_eq(fzero(reg_file, n), n);
+    
+    // Return to start of file
+    if (fseek(reg_file, 0, SEEK_SET) != 0) {
+        ck_abort_msg("fseek failed");
+    }
+    
+    // Check the file is all zero
+    size_t total = 0;
+    int b;
+    while ((b = fgetc(reg_file)) != EOF) {
+        ck_assert_int_eq(b, 0);
+        total++;
+    }
+    
+    // Check total size of file is zero
+    ck_assert_int_eq(total, n);
+} END_TEST
+
 // Suite
 
 Suite *create_utils_suite() {
@@ -126,6 +159,15 @@ Suite *create_utils_suite() {
         tcase_add_loop_test(tc, test_fskip, 0, NSIZES);
         tcase_add_loop_test(tc, test_fskip_char, 0, NSIZES);
         tcase_add_loop_test(tc, test_fskip_eof, 0, NSIZES);
+        
+        suite_add_tcase(s, tc);
+    }
+    
+    {
+        TCase *tc = tcase_create("fzero");
+        tcase_add_checked_fixture(tc, setup_fzero, teardown_fzero);
+        
+        tcase_add_loop_test(tc, test_fzero, 0, NSIZES);
         
         suite_add_tcase(s, tc);
     }

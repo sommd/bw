@@ -1,9 +1,8 @@
 #include "utils.h"
 
-#include <stdbool.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <check.h>
+#include "test.h"
 
 #define MAX_SIZE 100000
 #define NSIZES (sizeof(sizes) / sizeof(*sizes))
@@ -48,8 +47,8 @@ START_TEST(test_fsize_empty) {
 START_TEST(test_fsize_sized) {
     size_t size = sizes[_i];
     
-    fzero(reg_file, size);
-    fflush(reg_file);
+    test_check_errno(fzero(reg_file, size) == size);
+    test_check_errno(fflush(reg_file) == 0);
     
     ck_assert_int_eq(fsize(reg_file), size);
 } END_TEST
@@ -68,10 +67,10 @@ START_TEST(test_fsize_dir_file) {
 
 void setup_fskip() {
     // Create regular file of MAX_SIZE
-    ck_assert(reg_file = tmpfile());
-    ck_assert_int_eq(fzero(reg_file, MAX_SIZE), MAX_SIZE);
+    test_check_errno(reg_file = tmpfile());
+    test_check_errno(fzero(reg_file, MAX_SIZE) == MAX_SIZE);
     // Return to start of file
-    ck_assert_int_eq(fseek(reg_file, 0, SEEK_SET), 0);
+    test_check_errno(fseek(reg_file, 0, SEEK_SET) == 0);
     
     ck_assert(char_file = fopen("/dev/zero", "rb"));
 }
@@ -105,7 +104,7 @@ START_TEST(test_fskip_eof) {
 // fzero
 
 void setup_fzero() {
-    ck_assert(reg_file = tmpfile());
+    test_check_errno(reg_file = tmpfile());
 }
 
 void teardown_fzero() {
@@ -119,9 +118,7 @@ START_TEST(test_fzero) {
     ck_assert_int_eq(fzero(reg_file, n), n);
     
     // Return to start of file
-    if (fseek(reg_file, 0, SEEK_SET) != 0) {
-        ck_abort_msg("fseek failed");
-    }
+    test_check_errno(fseek(reg_file, 0, SEEK_SET) == 0);
     
     // Check the file is all zero
     size_t total = 0;

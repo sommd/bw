@@ -28,7 +28,7 @@ size_t fskip(FILE *f, size_t count) {
         if (pos != -1) {
             off_t seek = MIN(count, size - pos);
             
-            if (fseeko(f, seek, SEEK_CUR)) {
+            if (fseeko(f, seek, SEEK_CUR) == 0) {
                 return seek;
             }
         }

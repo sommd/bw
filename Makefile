@@ -19,13 +19,13 @@ SOURCE_FILES=$(wildcard $(SOURCE_DIR)/*.c)
 OBJECT_FILES=$(patsubst $(SOURCE_DIR)/%.c,$(OBJECT_DIR)/%.o,$(SOURCE_FILES))
 GEN_FILES=$(patsubst $(SOURCE_DIR)/%.in,$(GEN_DIR)/%,$(wildcard $(SOURCE_DIR)/*.in))
 DEPEND_FILES=$(patsubst $(SOURCE_DIR)/%.c,$(DEPEND_DIR)/%.d,$(SOURCE_FILES))
-MAIN=$(SOURCE_DIR)/$(PROJECT_NAME).c
+MAIN=$(OBJECT_DIR)/$(PROJECT_NAME).o
 EXE=$(BIN_DIR)/$(PROJECT_NAME)
 
 TEST_SOURCE_FILES=$(wildcard $(TEST_DIR)/*.c)
 TEST_OBJECT_FILES=$(patsubst $(TEST_DIR)/%.c,$(OBJECT_DIR)/%.o,$(TEST_SOURCE_FILES))
 TEST_DEPEND_FILES=$(patsubst $(TEST_DIR)/%.c,$(DEPEND_DIR)/%.d,$(TEST_SOURCE_FILES))
-TEST_MAIN=$(TEST_DIR)/$(PROJECT_NAME)-test.c
+TEST_MAIN=$(OBJECT)/$(PROJECT_NAME)-test.o
 TEST_EXE=$(BIN_DIR)/$(PROJECT_NAME)-test
 
 # Compiler options
@@ -48,7 +48,7 @@ check: $(TEST_EXE)
 # Executables
 
 $(EXE): $(OBJECT_FILES)
-$(TEST_EXE): $(filter $(MAIN),$(OBJECT_FILES)) $(TEST_OBJECT_FILES)
+$(TEST_EXE): $(filter-out $(MAIN),$(OBJECT_FILES)) $(TEST_OBJECT_FILES)
 
 $(EXE) $(TEST_EXE): | $(BIN_DIR)
 	$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $@

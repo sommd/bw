@@ -13,10 +13,6 @@ GEN_DIR=$(BUILD_DIR)/gen
 DEPEND_DIR=$(BUILD_DIR)/dep
 BIN_DIR=$(BUILD_DIR)/bin
 
-# Compiler options
-CFLAGS+=-I$(GEN_DIR)
-$(TEST_OBJECT_FILES): CFLAGS+=-I$(SOURCE_DIR) # Include src headers for test
-
 # Automatic variables
 
 SOURCE_FILES=$(wildcard $(SOURCE_DIR)/*.c)
@@ -32,14 +28,22 @@ TEST_DEPEND_FILES=$(patsubst $(TEST_DIR)/%.c,$(DEPEND_DIR)/%.d,$(TEST_SOURCE_FIL
 TEST_MAIN=$(TEST_DIR)/$(PROJECT_NAME)-test.c
 TEST_EXE=$(BIN_DIR)/$(PROJECT_NAME)-test
 
+# Compiler options
+
+CFLAGS+=-I$(GEN_DIR)
+LDFLAGS+=
+
+$(TEST_OBJECT_FILES): CFLAGS+=-I$(SOURCE_DIR)
+$(TEST_OBJECT_FILES) $(TEST_EXE): LDFLAGS+=-lcheck
+
 # Targets
 
 .PHONY: all
-all: $(EXE) $(TEST_EXE)
+all: $(EXE) $(TEST_EXE) check
 
 .PHONY: check
 check: $(TEST_EXE)
-	$(TEST_EXE)
+	@$(TEST_EXE)
 
 # Executables
 
@@ -68,7 +72,7 @@ $(TEST_DEPEND_FILES): $$(patsubst $(DEPEND_DIR)/%.d,$(TEST_DIR)/%.c,$$@)
 
 .PRECIOUS: $(DEPEND_FILES) $(TEST_DEPEND_FILES)
 $(DEPEND_FILES) $(TEST_DEPEND_FILES): | $(GEN_FILES) $(DEPEND_DIR)
-	$(CC) $(CFLAGS) -MM $< -MT $(patsubst $(DEPEND_DIR)/%.d,$(OBJECT_DIR)/%.o,$@) -MF $@
+	@$(CC) $(CFLAGS) -MM $< -MT $(patsubst $(DEPEND_DIR)/%.d,$(OBJECT_DIR)/%.o,$@) -MF $@
 
 include $(DEPEND_FILES) $(TEST_DEPEND_FILES)
 
@@ -79,7 +83,7 @@ $(GEN_FILES): $$(patsubst $(GEN_DIR)/%,$(SOURCE_DIR)/%.in,$$@) Makefile
 
 .PRECIOUS: $(GEN_FILES)
 $(GEN_FILES): | $(GEN_DIR)
-	sed -e 's/@PROJECT_NAME@/$(subst /,\/,$(PROJECT_NAME))/g;' \
+	@sed -e 's/@PROJECT_NAME@/$(subst /,\/,$(PROJECT_NAME))/g;' \
 		-e 's/@PROJECT_VERSION@/$(subst /,\/,$(PROJECT_VERSION))/g;' \
 		-e 's/@PROJECT_BUGREPORT@/$(subst /,\/,$(PROJECT_BUGREPORT))/g;' \
 		< $< > $@

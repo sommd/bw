@@ -33,3 +33,14 @@ void test_assert_file_bytes(FILE *f, size_t n, byte b) {
     
     ck_assert_msg(total == n, "Expected %zu bytes but only got %zu", n, total);
 }
+
+void write_junk(FILE *f, size_t n) {
+    byte junk[BUF_SIZE];
+    while (n > 0) {
+        size_t to_write = MIN(BUF_SIZE, n);
+        size_t written = fwrite(junk, sizeof(byte), to_write, f);
+        test_check_error(written == to_write);
+        
+        n -= written;
+    }
+}

@@ -47,7 +47,7 @@ START_TEST(test_fsize_empty) {
 START_TEST(test_fsize_sized) {
     size_t size = sizes[_i];
     
-    test_check_error(fzero(reg_file, size) == size);
+    write_junk(reg_file, size);
     test_check_error(fflush(reg_file) == 0);
     
     ck_assert_int_eq(fsize(reg_file), size);
@@ -68,7 +68,7 @@ START_TEST(test_fsize_dir_file) {
 void setup_fskip() {
     // Create regular file of MAX_SIZE
     test_check_error(reg_file = tmpfile());
-    test_check_error(fzero(reg_file, MAX_SIZE) == MAX_SIZE);
+    write_junk(reg_file, MAX_SIZE);
     // Return to start of file
     test_check_error(fseek(reg_file, 0, SEEK_SET) == 0);
     
@@ -126,9 +126,8 @@ START_TEST(test_fzero) {
 START_TEST(test_fzero_end) {
     size_t n = sizes[_i];
     
-    // Just use write junk data
-    byte data[n];
-    test_check_error(fwrite(data, sizeof(byte), n, reg_file) == n);
+    // Write some data to the file
+    write_junk(reg_file, n);
     
     ck_assert_int_eq(fzero(reg_file, n), n);
     
@@ -141,9 +140,9 @@ START_TEST(test_fzero_end) {
 START_TEST(test_fzero_middle) {
     size_t n = sizes[_i];
     
-    // Just use write junk data
-    byte data[n];
-    test_check_error(fwrite(data, sizeof(byte), n, reg_file) == n);
+    // Write some data to the file
+    write_junk(reg_file, n);
+    
     // Seek to middle of file
     test_check_error(fseek(reg_file, n / 2, SEEK_SET) == 0);
     

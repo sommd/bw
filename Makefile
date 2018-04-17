@@ -71,8 +71,11 @@ $(DEPEND_FILES): $$(patsubst $(DEPEND_DIR)/%.d,$(SOURCE_DIR)/%.c,$$@)
 $(TEST_DEPEND_FILES): $$(patsubst $(DEPEND_DIR)/%.d,$(TEST_DIR)/%.c,$$@)
 
 .PRECIOUS: $(DEPEND_FILES) $(TEST_DEPEND_FILES)
-$(DEPEND_FILES) $(TEST_DEPEND_FILES): | $(GEN_FILES) $(DEPEND_DIR)
-	@$(CC) $(CFLAGS) -MM $< -MT $(patsubst $(DEPEND_DIR)/%.d,$(OBJECT_DIR)/%.o,$@) -MF $@
+$(DEPEND_FILES) $(TEST_DEPEND_FILES): | $(DEPEND_DIR)
+	@echo Generating $@
+	@# Generate a dependencies file and add $(GEN_DIR) to any $(GEN_FILES) without it
+	@$(CC) $(CFLAGS) -MM $< -MT $(patsubst $(DEPEND_DIR)/%.d,$(OBJECT_DIR)/%.o,$@) -MG | \
+		sed -r $(patsubst $(GEN_DIR)/%,-e 's@ (%)@ $(GEN_DIR)/\1@g',$(GEN_FILES)) > $@
 
 include $(DEPEND_FILES) $(TEST_DEPEND_FILES)
 
@@ -83,6 +86,7 @@ $(GEN_FILES): $$(patsubst $(GEN_DIR)/%,$(SOURCE_DIR)/%.in,$$@) Makefile
 
 .PRECIOUS: $(GEN_FILES)
 $(GEN_FILES): | $(GEN_DIR)
+	@echo Generating $@
 	@sed -e 's/@PROJECT_NAME@/$(subst /,\/,$(PROJECT_NAME))/g;' \
 		-e 's/@PROJECT_VERSION@/$(subst /,\/,$(PROJECT_VERSION))/g;' \
 		-e 's/@PROJECT_BUGREPORT@/$(subst /,\/,$(PROJECT_BUGREPORT))/g;' \

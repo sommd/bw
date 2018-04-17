@@ -117,10 +117,23 @@ START_TEST(test_fzero) {
     
     ck_assert_int_eq(fzero(reg_file, n), n);
     
-    // Return to start of file
+    // Check the whole file is all zero
     test_check_error(fseek(reg_file, 0, SEEK_SET) == 0);
+    test_assert_file_bytes(reg_file, n, 0);
+} END_TEST
+
+/* Test fzero with various counts start at end of file. */
+START_TEST(test_fzero_end) {
+    size_t n = sizes[_i];
     
-    // Check the file is all zero
+    // Just use write junk data
+    byte data[n];
+    test_check_error(fwrite(data, sizeof(byte), n, reg_file) == n);
+    
+    ck_assert_int_eq(fzero(reg_file, n), n);
+    
+    // Check the file is all zero after our starting position
+    test_check_error(fseek(reg_file, n, SEEK_SET) == 0);
     test_assert_file_bytes(reg_file, n, 0);
 } END_TEST
 
@@ -157,6 +170,7 @@ Suite *create_utils_suite() {
         tcase_add_checked_fixture(tc, setup_fzero, teardown_fzero);
         
         tcase_add_loop_test(tc, test_fzero, 0, NSIZES);
+        tcase_add_loop_test(tc, test_fzero_end, 0, NSIZES);
         
         suite_add_tcase(s, tc);
     }

@@ -121,15 +121,7 @@ START_TEST(test_fzero) {
     test_check_errno(fseek(reg_file, 0, SEEK_SET) == 0);
     
     // Check the file is all zero
-    size_t total = 0;
-    int b;
-    while ((b = fgetc(reg_file)) != EOF) {
-        ck_assert_int_eq(b, 0);
-        total++;
-    }
-    
-    // Check total size of file is zero
-    ck_assert_int_eq(total, n);
+    test_assert_file_bytes(reg_file, n, 0);
 } END_TEST
 
 // Suite

@@ -137,6 +137,23 @@ START_TEST(test_fzero_end) {
     test_assert_file_bytes(reg_file, n, 0);
 } END_TEST
 
+/* Test fzero with various counts start at the middle of the file. */
+START_TEST(test_fzero_middle) {
+    size_t n = sizes[_i];
+    
+    // Just use write junk data
+    byte data[n];
+    test_check_error(fwrite(data, sizeof(byte), n, reg_file) == n);
+    // Seek to middle of file
+    test_check_error(fseek(reg_file, n / 2, SEEK_SET) == 0);
+    
+    ck_assert_int_eq(fzero(reg_file, n), n);
+    
+    // Check the file is all zero after our starting position
+    test_check_error(fseek(reg_file, n / 2, SEEK_SET) == 0);
+    test_assert_file_bytes(reg_file, n, 0);
+} END_TEST
+
 // Suite
 
 Suite *create_utils_suite() {
@@ -171,6 +188,7 @@ Suite *create_utils_suite() {
         
         tcase_add_loop_test(tc, test_fzero, 0, NSIZES);
         tcase_add_loop_test(tc, test_fzero_end, 0, NSIZES);
+        tcase_add_loop_test(tc, test_fzero_middle, 0, NSIZES);
         
         suite_add_tcase(s, tc);
     }

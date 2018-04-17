@@ -7,7 +7,7 @@
 #include "utils.h"
 
 void _test_check_error(const char *file, int line) {
-    _ck_assert_failed(file, line, "Failed" , strerror(errno), NULL);
+    _ck_assert_failed(file, line, "Failed", strerror(errno), NULL);
 }
 
 void test_assert_file_bytes(FILE *f, size_t n, byte b) {
@@ -19,7 +19,7 @@ void test_assert_file_bytes(FILE *f, size_t n, byte b) {
         size_t read = fread(buf, sizeof(byte), MIN(BUF_SIZE, n - total), f);
         
         // Check for read error
-        test_check_errno(!ferror(f));
+        test_check_error(!ferror(f));
         
         // Assert all bytes zero
         for (size_t i = 0; i < read; i++) {

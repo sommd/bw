@@ -4,7 +4,7 @@
 #include "utils.h"
 
 /* Abort with error message from errno if check is false. */
-#define test_check_errno(check) if (!(check)) _test_check_error(__FILE__, __LINE__)
+#define test_check_error(check) if (!(check)) _test_check_error(__FILE__, __LINE__)
 
 /* Implementation of test_check_errno. */
 void _test_check_error(const char *file, int line);

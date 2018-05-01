@@ -25,19 +25,39 @@ static FILE *reg_file;
 static FILE *char_file;
 static FILE *dir_file;
 
-// fsize
+// setup/teardown
 
-void setup_fsize() {
-    ck_assert(reg_file = tmpfile());
-    ck_assert(char_file = fopen("/dev/null", "wb+"));
+/* Setup empty reg_file. */
+void setup_reg_empty() {
+    check_error(reg_file = tmpfile());
+}
+
+/* Setup reg_file filled with MAX_SIZE bytes. */
+void setup_reg_filled() {
+    // Create regular file of MAX_SIZE
+    check_error(reg_file = tmpfile());
+    write_junk(reg_file, MAX_SIZE);
+    
+    // Return to start of file
+    check_error(fseek(reg_file, 0, SEEK_SET) == 0);
+}
+
+/* Setup char_file and dir_file. */
+void setup_special() {
+    ck_assert(char_file = fopen("/dev/urandom", "wb+"));
     ck_assert(dir_file = fopen("/", "rb"));
 }
 
-void teardown_fsize() {
+void teardown_reg() {
     fclose(reg_file);
+}
+
+void teardown_special() {
     fclose(char_file);
     fclose(dir_file);
 }
+
+// fsize
 
 /* Test fsize with an empty file. */
 START_TEST(test_fsize_empty) {
@@ -66,21 +86,6 @@ START_TEST(test_fsize_dir_file) {
 
 // fskip
 
-void setup_fskip() {
-    // Create regular file of MAX_SIZE
-    check_error(reg_file = tmpfile());
-    write_junk(reg_file, MAX_SIZE);
-    // Return to start of file
-    check_error(fseek(reg_file, 0, SEEK_SET) == 0);
-    
-    ck_assert(char_file = fopen("/dev/zero", "rb"));
-}
-
-void teardown_fskip() {
-    fclose(reg_file);
-    fclose(char_file);
-}
-
 /* Test fskip with various counts. */
 START_TEST(test_fskip) {
     size_t n = sizes[_i];
@@ -103,14 +108,6 @@ START_TEST(test_fskip_eof) {
 } END_TEST
 
 // fzero
-
-void setup_fzero() {
-    check_error(reg_file = tmpfile());
-}
-
-void teardown_fzero() {
-    fclose(reg_file);
-}
 
 /* Test fzero with various counts. */
 START_TEST(test_fzero) {
@@ -156,14 +153,6 @@ START_TEST(test_fzero_middle) {
 
 // freadall
 
-void setup_freadall() {
-    check_error(reg_file = tmpfile());
-}
-
-void teardown_freadall() {
-    fclose(reg_file);
-}
-
 /* Test freadall with various counts of bytes. */
 START_TEST(test_freadall_bytes) {
     size_t n = sizes[_i];
@@ -201,7 +190,8 @@ Suite *create_utils_suite() {
     
     {
         TCase *tc = tcase_create("fsize");
-        tcase_add_checked_fixture(tc, setup_fsize, teardown_fsize);
+        tcase_add_checked_fixture(tc, setup_reg_empty, teardown_reg);
+        tcase_add_checked_fixture(tc, setup_special, teardown_special);
         
         tcase_add_test(tc, test_fsize_empty);
         tcase_add_loop_test(tc, test_fsize_sized, 0, NSIZES);
@@ -213,7 +203,8 @@ Suite *create_utils_suite() {
     
     {
         TCase *tc = tcase_create("fskip");
-        tcase_add_checked_fixture(tc, setup_fskip, teardown_fskip);
+        tcase_add_checked_fixture(tc, setup_reg_filled, teardown_reg);
+        tcase_add_checked_fixture(tc, setup_special, teardown_special);
         
         tcase_add_loop_test(tc, test_fskip, 0, NSIZES);
         tcase_add_loop_test(tc, test_fskip_char, 0, NSIZES);
@@ -224,7 +215,7 @@ Suite *create_utils_suite() {
     
     {
         TCase *tc = tcase_create("fzero");
-        tcase_add_checked_fixture(tc, setup_fzero, teardown_fzero);
+        tcase_add_checked_fixture(tc, setup_reg_empty, teardown_reg);
         
         tcase_add_loop_test(tc, test_fzero, 0, NSIZES);
         tcase_add_loop_test(tc, test_fzero_end, 0, NSIZES);
@@ -235,7 +226,7 @@ Suite *create_utils_suite() {
     
     {
         TCase *tc = tcase_create("freadall");
-        tcase_add_checked_fixture(tc, setup_freadall, teardown_freadall);
+        tcase_add_checked_fixture(tc, setup_reg_empty, teardown_reg);
         
         tcase_add_loop_test(tc, test_freadall_bytes, 0, NSIZES);
         

@@ -30,8 +30,8 @@ TEST_EXE=$(BIN_DIR)/$(PROJECT_NAME)-test
 
 # Compiler options
 
-CFLAGS+=-I$(GEN_DIR)
-LDFLAGS+=
+CFLAGS+=-I$(GEN_DIR) -Wall -Werror
+LDFLAGS+=-Wall -Werror
 
 $(TEST_OBJECT_FILES): CFLAGS+=-I$(SOURCE_DIR)
 $(TEST_OBJECT_FILES) $(TEST_EXE): LDFLAGS+=-lcheck

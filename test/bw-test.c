@@ -1,10 +1,14 @@
 #include <stdbool.h>
 #include <stdlib.h>
+#include <time.h>
 #include <check.h>
 
 Suite *create_utils_suite();
 
 int main() {
+    // Seed rand
+    srand(time(NULL));
+    
     // Create suites
     Suite *suites[] = {
         create_utils_suite(),

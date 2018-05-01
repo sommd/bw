@@ -1,5 +1,6 @@
 #include "utils.h"
 
+#include <stdlib.h>
 #include <unistd.h>
 #include <check.h>
 #include "test.h"
@@ -153,6 +154,46 @@ START_TEST(test_fzero_middle) {
     assert_file_bytes(reg_file, n, 0);
 } END_TEST
 
+// freadall
+
+void setup_freadall() {
+    check_error(reg_file = tmpfile());
+}
+
+void teardown_freadall() {
+    fclose(reg_file);
+}
+
+/* Test freadall with various counts of bytes. */
+START_TEST(test_freadall_bytes) {
+    size_t n = sizes[_i];
+    
+    // Create junk test data
+    byte *junk = malloc(n);
+    check_error(junk);
+    create_junk(junk, n);
+    
+    // Write junk to file
+    check_error(fwrite(junk, sizeof(byte), n, reg_file) == n);
+    // Return to start of file
+    check_error(fseek(reg_file, 0, SEEK_SET) == 0);
+    
+    // Read data back
+    size_t read;
+    byte *data = freadall(sizeof(byte), &read, reg_file);
+    if (read != 0) {
+        ck_assert_ptr_nonnull(data);
+    }
+    
+    // Check read n bytes
+    ck_assert_uint_eq(read, n);
+    // Check data
+    ck_assert_mem_eq(junk, data, read);
+    
+    free(data);
+    free(junk);
+} END_TEST
+
 // Suite
 
 Suite *create_utils_suite() {
@@ -188,6 +229,15 @@ Suite *create_utils_suite() {
         tcase_add_loop_test(tc, test_fzero, 0, NSIZES);
         tcase_add_loop_test(tc, test_fzero_end, 0, NSIZES);
         tcase_add_loop_test(tc, test_fzero_middle, 0, NSIZES);
+        
+        suite_add_tcase(s, tc);
+    }
+    
+    {
+        TCase *tc = tcase_create("freadall");
+        tcase_add_checked_fixture(tc, setup_freadall, teardown_freadall);
+        
+        tcase_add_loop_test(tc, test_freadall_bytes, 0, NSIZES);
         
         suite_add_tcase(s, tc);
     }

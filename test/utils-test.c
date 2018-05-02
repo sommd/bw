@@ -8,6 +8,7 @@
 #define MAX_COUNT 100000
 #define NCOUNTS (sizeof(counts) / sizeof(*counts))
 
+/* Input counts for repeated tests. Usually used as size of the test file. */
 static const size_t counts[] = {
     0,
     1,
@@ -153,31 +154,50 @@ START_TEST(test_fzero_middle) {
 
 // freadall
 
-/* Test freadall with various counts of single-byte items. */
-START_TEST(test_freadall_bytes) {
-    size_t n = counts[_i];
+#define NSIZES (sizeof(sizes) / sizeof(*sizes))
+
+/* Sizes of items read in test_freadall. */
+static const size_t sizes[] = {
+    1,
+    2,
+    3,
+    4,
+    7,
+    8,
+    67,
+    191,
+    MAX_COUNT
+};
+
+/* Test freadall with various counts of various sizes items. */
+START_TEST(test_freadall) {
+    // Input values
+    size_t nbytes = counts[_i / NSIZES];
+    size_t size = sizes[_i % NSIZES];
+    
+    // Expected values
+    size_t exp_count = nbytes / size;
+    size_t exp_nbytes = exp_count * size;
     
     // Create junk test data
-    byte *junk = malloc(n);
+    byte *junk = malloc(nbytes);
     check_error(junk);
-    create_junk(junk, n);
+    create_junk(junk, nbytes);
     
-    // Write junk to file
-    check_error(fwrite(junk, sizeof(byte), n, reg_file) == n);
-    // Return to start of file
+    // Write junk to file and return to start
+    check_error(fwrite(junk, sizeof(byte), nbytes, reg_file) == nbytes);
     check_error(fseek(reg_file, 0, SEEK_SET) == 0);
     
     // Read data back
-    size_t read;
-    byte *data = freadall(sizeof(byte), &read, reg_file);
-    if (read != 0) {
+    size_t count;
+    byte *data = freadall(size, &count, reg_file);
+    if (count != 0) {
         ck_assert_ptr_nonnull(data);
     }
     
-    // Check read n bytes
-    ck_assert_uint_eq(read, n);
-    // Check data
-    ck_assert_mem_eq(junk, data, read);
+    // Check expected values
+    ck_assert_int_eq(count, exp_count);
+    ck_assert_mem_eq(data, junk, exp_nbytes);
     
     free(data);
     free(junk);
@@ -228,7 +248,7 @@ Suite *create_utils_suite() {
         TCase *tc = tcase_create("freadall");
         tcase_add_checked_fixture(tc, setup_reg_empty, teardown_reg);
         
-        tcase_add_loop_test(tc, test_freadall_bytes, 0, NCOUNTS);
+        tcase_add_loop_test(tc, test_freadall, 0, NCOUNTS * NSIZES);
         
         suite_add_tcase(s, tc);
     }

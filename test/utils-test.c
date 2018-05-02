@@ -5,10 +5,10 @@
 #include <check.h>
 #include "test.h"
 
-#define MAX_SIZE 100000
-#define NSIZES (sizeof(sizes) / sizeof(*sizes))
+#define MAX_COUNT 100000
+#define NCOUNTS (sizeof(counts) / sizeof(*counts))
 
-static const size_t sizes[] = {
+static const size_t counts[] = {
     0,
     1,
     2,
@@ -18,7 +18,7 @@ static const size_t sizes[] = {
     5000,
     10000,
     50000,
-    MAX_SIZE,
+    MAX_COUNT,
 };
 
 static FILE *reg_file;
@@ -32,11 +32,11 @@ void setup_reg_empty() {
     check_error(reg_file = tmpfile());
 }
 
-/* Setup reg_file filled with MAX_SIZE bytes. */
+/* Setup reg_file filled with MAX_COUNT bytes. */
 void setup_reg_filled() {
-    // Create regular file of MAX_SIZE
+    // Create regular file of MAX_COUNT
     check_error(reg_file = tmpfile());
-    write_junk(reg_file, MAX_SIZE);
+    write_junk(reg_file, MAX_COUNT);
     
     // Return to start of file
     check_error(fseek(reg_file, 0, SEEK_SET) == 0);
@@ -66,7 +66,7 @@ START_TEST(test_fsize_empty) {
 
 /* Test fsize with variously sized files. */
 START_TEST(test_fsize_sized) {
-    size_t size = sizes[_i];
+    size_t size = counts[_i];
     
     write_junk(reg_file, size);
     check_error(fflush(reg_file) == 0);
@@ -88,30 +88,30 @@ START_TEST(test_fsize_dir_file) {
 
 /* Test fskip with various counts. */
 START_TEST(test_fskip) {
-    size_t n = sizes[_i];
+    size_t n = counts[_i];
     ck_assert_int_eq(fskip(reg_file, n), n);
     ck_assert_int_eq(ftell(reg_file), n);
 } END_TEST
 
 /* Test fskip with various counts on a character device. */
 START_TEST(test_fskip_char) {
-    size_t n = sizes[_i];
+    size_t n = counts[_i];
     // No real way to check position so we can't properly test this
     ck_assert_int_eq(fskip(char_file, n), n);
 } END_TEST
 
 /* Test fskip with various counts larger than the size of the file. */
 START_TEST(test_fskip_eof) {
-    size_t n = sizes[_i];
-    ck_assert_int_eq(fskip(reg_file, MAX_SIZE + n), MAX_SIZE);
-    ck_assert_int_eq(ftell(reg_file), MAX_SIZE);
+    size_t n = counts[_i];
+    ck_assert_int_eq(fskip(reg_file, MAX_COUNT + n), MAX_COUNT);
+    ck_assert_int_eq(ftell(reg_file), MAX_COUNT);
 } END_TEST
 
 // fzero
 
 /* Test fzero with various counts. */
 START_TEST(test_fzero) {
-    size_t n = sizes[_i];
+    size_t n = counts[_i];
     
     ck_assert_int_eq(fzero(reg_file, n), n);
     
@@ -122,7 +122,7 @@ START_TEST(test_fzero) {
 
 /* Test fzero with various counts start at end of file. */
 START_TEST(test_fzero_end) {
-    size_t n = sizes[_i];
+    size_t n = counts[_i];
     
     // Write some data to the file
     write_junk(reg_file, n);
@@ -136,7 +136,7 @@ START_TEST(test_fzero_end) {
 
 /* Test fzero with various counts start at the middle of the file. */
 START_TEST(test_fzero_middle) {
-    size_t n = sizes[_i];
+    size_t n = counts[_i];
     
     // Write some data to the file
     write_junk(reg_file, n);
@@ -153,9 +153,9 @@ START_TEST(test_fzero_middle) {
 
 // freadall
 
-/* Test freadall with various counts of bytes. */
+/* Test freadall with various counts of single-byte items. */
 START_TEST(test_freadall_bytes) {
-    size_t n = sizes[_i];
+    size_t n = counts[_i];
     
     // Create junk test data
     byte *junk = malloc(n);
@@ -194,7 +194,7 @@ Suite *create_utils_suite() {
         tcase_add_checked_fixture(tc, setup_special, teardown_special);
         
         tcase_add_test(tc, test_fsize_empty);
-        tcase_add_loop_test(tc, test_fsize_sized, 0, NSIZES);
+        tcase_add_loop_test(tc, test_fsize_sized, 0, NCOUNTS);
         tcase_add_test(tc, test_fsize_char_file);
         tcase_add_test(tc, test_fsize_dir_file);
         
@@ -206,9 +206,9 @@ Suite *create_utils_suite() {
         tcase_add_checked_fixture(tc, setup_reg_filled, teardown_reg);
         tcase_add_checked_fixture(tc, setup_special, teardown_special);
         
-        tcase_add_loop_test(tc, test_fskip, 0, NSIZES);
-        tcase_add_loop_test(tc, test_fskip_char, 0, NSIZES);
-        tcase_add_loop_test(tc, test_fskip_eof, 0, NSIZES);
+        tcase_add_loop_test(tc, test_fskip, 0, NCOUNTS);
+        tcase_add_loop_test(tc, test_fskip_char, 0, NCOUNTS);
+        tcase_add_loop_test(tc, test_fskip_eof, 0, NCOUNTS);
         
         suite_add_tcase(s, tc);
     }
@@ -217,9 +217,9 @@ Suite *create_utils_suite() {
         TCase *tc = tcase_create("fzero");
         tcase_add_checked_fixture(tc, setup_reg_empty, teardown_reg);
         
-        tcase_add_loop_test(tc, test_fzero, 0, NSIZES);
-        tcase_add_loop_test(tc, test_fzero_end, 0, NSIZES);
-        tcase_add_loop_test(tc, test_fzero_middle, 0, NSIZES);
+        tcase_add_loop_test(tc, test_fzero, 0, NCOUNTS);
+        tcase_add_loop_test(tc, test_fzero_end, 0, NCOUNTS);
+        tcase_add_loop_test(tc, test_fzero_middle, 0, NCOUNTS);
         
         suite_add_tcase(s, tc);
     }
@@ -228,7 +228,7 @@ Suite *create_utils_suite() {
         TCase *tc = tcase_create("freadall");
         tcase_add_checked_fixture(tc, setup_reg_empty, teardown_reg);
         
-        tcase_add_loop_test(tc, test_freadall_bytes, 0, NSIZES);
+        tcase_add_loop_test(tc, test_freadall_bytes, 0, NCOUNTS);
         
         suite_add_tcase(s, tc);
     }

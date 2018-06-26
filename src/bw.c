@@ -127,12 +127,34 @@ static operator parse_operator(char *arg) {
     return -1;
 }
 
+static int parse_byte(char *str, byte *b) {
+    // Handle binary input
+    char buf[strlen(str)];
+    if (sscanf(str, "0b%[01]", buf) == 1) {
+        // Convert from binary
+        *b = 0;
+        for (char *c = buf; *c != '\0'; c++) {
+            *b = (*b << 1) | (*c == '0' ? 0 : 1);
+        }
+        
+        return 1;
+    }
+    
+    // Handle octal preceded by "0o"
+    if (sscanf(str, "0o%hho", b) == 1) {
+        return 1;
+    }
+    
+    // Let sscanf handle decimal, octal preceded by "0" and hex
+    return sscanf(str, "%hhi", b);
+}
+
 static void parse_operand(operator operator, arguments *args, char *arg) {
     switch (operator) {
         case OP_OR: case OP_AND: case OP_XOR:
             // Parse as byte if possible, otherwise assume file
             args->operand.type = OPERAND_BYTE;
-            if (sscanf(arg, "%hhi", &args->operand.byte) != 1) {
+            if (!parse_byte(arg, &args->operand.byte)) {
                 args->operand.type = OPERAND_FILE;
                 args->operand.file = arg;
             }

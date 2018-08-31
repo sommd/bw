@@ -20,7 +20,7 @@
 /* Exit code from bw_error. */
 #define EXIT_BW_ERROR(e) (EXIT_CANNOT_CLOSE + (e).type)
 
-#define DOC PROJECT_NAME " - perform bitwise operations on files"
+#define DOC "Perform bitwise operations on files."
 #define ARGS_DOC "OPERATOR [OPERAND]"
 
 typedef enum operator {

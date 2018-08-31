@@ -20,8 +20,13 @@
 /* Exit code from bw_error. */
 #define EXIT_BW_ERROR(e) (EXIT_CANNOT_CLOSE + (e).type)
 
-#define DOC "Perform bitwise operations on files."
-#define ARGS_DOC "OPERATOR [OPERAND]"
+const char args_doc[] = "OPERATOR [OPERAND]";
+const char doc[] = "Perform bitwise operations on files and streams.\n"
+"\n"
+"OPERATOR is one of: |, o[r], &, a[nd], ^, x[or], ~, n[ot], <[<], l[shift], "
+">[>], r[shift]. OPERAND is a file or byte value."
+"\v"
+"See " PROJECT_URL " for full documentation.";
 
 typedef enum operator {
     OP_OR,
@@ -210,7 +215,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 }
 
 // Argp struct
-static const struct argp argp = { options, parse_opt, ARGS_DOC, DOC };
+static const struct argp argp = { options, parse_opt, args_doc, doc };
 
 int main(int argc, char *argv[]) {
     // Default options

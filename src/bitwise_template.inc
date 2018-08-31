@@ -81,7 +81,7 @@ QUALIFIERS bw_error CONCAT(OP_NAME, _file)(FILE *input, FILE *output, FILE *oper
         }
         
         // Read from operand
-        size_t op_read = fread(in_buf, 1, in_read, operand);
+        size_t op_read = fread(op_buf, 1, in_read, operand);
         // Check error if not enough read, or use EOF mode if EOF reached
         bw_error op_error = no_error;
         if (op_read < in_read) {

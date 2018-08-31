@@ -5,7 +5,7 @@
 #include <argp.h>
 #include <error.h>
 #include "bitwise.h"
-#include "config.h"
+#include "project.h"
 
 /* Exit code when called with incorrent usage. */
 #define EXIT_INCORRECT_USAGE 1

@@ -4,3 +4,6 @@ bw
 
 # VS Code
 .vscode/
+
+# CLion
+.idea/

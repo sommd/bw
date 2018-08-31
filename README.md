@@ -57,33 +57,61 @@ EOF Mode | Description
 
 ## Examples
 
-Emulate a "`/dev/one`", similar to `/dev/zero` but returns one-bits instead of zero-bits.
+Bitwise ASCII case conversion (alpha characters only):
+
+```sh
+$ bw and 0b11011111
+helloworld
+HELLOWORLD
+$ bw or 0b00100000
+HELLOWORLD
+helloworld
+```
+
+Emulate a "`/dev/one`", similar to `/dev/zero` but returns one-bits instead of zero-bits:
 
 ```sh
 $ bw -i /dev/zero '~' | xxd | head -1
 00000000: ffff ffff ffff ffff ffff ffff ffff ffff  ................
 ```
 
-Basix XOR cipher.
+Basic XOR cipher using a single byte as a key:
 
 ```sh
-$ bw ^ 0b11110011 > super_secret.txt
+$ bw ^ 0b11110011 --output super_secret.txt
 Hello, World.
 $ cat super_secret.txt
 ������Ӥ������
-$ bw -i super_secret.txt ^ 0b11110011
+$ bw --input super_secret.txt ^ 0b11110011
 Hello, World.
+```
+
+More complex XOR cypher using looping file as a key:
+
+```sh
+$ echo -n 'password' > key.txt
+$ bw --eof-mode loop ^ key.txt -o super_duper_secret.txt
+Hello, World. Please do not actually use this for encryption.
+$ cat super_duper_secret.txt
+8CR3YOW
+       DS
+
+WPO
+   A
+   Ye
+$ ./bw -el -i super_duper_secret.txt ^ key.txt
+Hello, World. Please do not actually use this for encryption.
 ```
 
 ## Building
 
-Run `make` to build bw and run the unit tests. Should build on any Unix/Unix like environment with GNU glibc (since the default front-end depends on Argp).
+Run `make` to build `bw` and run the unit tests. Should build on any Unix/Unix like environment with GNU glibc (since the default front-end depends on Argp).
 
 ## Contributing
 
 1. Fork
 2. Make some changes and commit.
-4. Create a pull request.
+3. Create a pull request.
 
 ## License
 
